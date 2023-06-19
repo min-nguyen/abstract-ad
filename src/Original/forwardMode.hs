@@ -4,7 +4,7 @@
 
 module ForwardMode where
 
-import Background
+import Original.Background
 import AbstractAD
 
 import Data.Map
@@ -13,13 +13,13 @@ import Data.Map
 
 newtype Dense v d = Dense { dense :: v -> d } deriving Functor
 
-instance  {-# OVERLAPS #-}  Semigroup e => Semigroup (Dense v e) where
+instance Semigroup e => Semigroup (Dense v e) where
   f <> g = Dense (\ v -> dense f v <> dense g v)
 
-instance  {-# OVERLAPS #-}  Monoid d => Monoid (Dense v d) where
+instance Monoid d => Monoid (Dense v d) where
   mempty = Dense (\ v -> mempty)
 
-instance  {-# OVERLAPS #-}  Semiring d => Semiring (Dense v d) where
+instance Semiring d => Semiring (Dense v d) where
   zero = Dense $ \ _ -> zero
   one  = Dense $ \ _ -> one
   f `plus` g = Dense $ \ v -> dense f v `plus` dense g v
@@ -60,16 +60,16 @@ abs_ m = Dense (\ v -> findWithDefault zero v (sparse m))
 rep_ :: (Bounded v, Semiring d, Ord v, Eq d, Enum v) => Dense v d -> Sparse v d
 rep_ f = Sparse (fromList [ (v, dense f v) | v <- [minBound..maxBound], dense f v /= zero])
 
-instance  {-# OVERLAPS #-}  (Ord v, Semiring d) => Semigroup (Sparse v d) where
+instance (Ord v, Semiring d) => Semigroup (Sparse v d) where
   (Sparse f) <> (Sparse g) = Sparse $ unionWith plus f g
 
-instance  {-# OVERLAPS #-}  (Ord v, Semiring d) => Monoid (Sparse v d) where
+instance (Ord v, Semiring d) => Monoid (Sparse v d) where
   mempty = Sparse empty
 
-instance  {-# OVERLAPS #-}  (Ord v, Semiring d) => SModule d (Sparse v d) where
+instance (Ord v, Semiring d) => SModule d (Sparse v d) where
   d `sact` (Sparse m) = Sparse $ fmap (d `times`) m
 
-instance  {-# OVERLAPS #-}   (Ord v, Semiring d) => Kronecker v d (Sparse v d) where
+instance (Ord v, Semiring d) => Kronecker v d (Sparse v d) where
   delta v = Sparse $ singleton v one
 
 instance (Ord v, Bounded v, Enum v, Semiring d, Eq d)

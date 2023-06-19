@@ -1,120 +1,136 @@
-{-# LANGUAGE UndecidableInstances #-}
 {-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE UndecidableInstances #-}
 {-# LANGUAGE DeriveFunctor #-}
+{-# OPTIONS_GHC -Wno-unrecognised-pragmas #-}
+{-# HLINT ignore "Use camelCase" #-}
 
 module Background where
 
--- Symbolic Expressions
+-- | 'Expr v' is a symbolic expression that captures polynomials over variables 'v'
+data Expr v = Var v | Zero | One | Plus (Expr v) (Expr v) | Times (Expr v) (Expr v)
 
-data Expr v  =  Var v |  Zero |  One
-             |  Plus (Expr v) (Expr v) |  Times  (Expr v) (Expr v)
+-- | The type 'X' for a single variable
+data X = X deriving Eq
 
-instance Show a => Show (Expr a) where
-  showsPrec p (Var x)  =  showsPrec p x
-  showsPrec p Zero     =  shows 0
-  showsPrec p One      =  shows 1
-  showsPrec p (Plus e1 e2)   =  showParen (p >= 6) $ (showsPrec 6 e1) . (" + " ++) . (showsPrec 6 e2)
-  showsPrec p (Times e1 e2)  =  showParen (p >= 7) $ (showsPrec 7 e1) . (" * " ++) . (showsPrec 7 e2)
+-- | x * (x + 1)
+example_1 :: Expr X
+example_1 = Times (Var X) (Plus (Var X) One)
 
-data X = X deriving (Show, Eq, Ord)
+{-- Semiring
+--}
+class Semiring d where
+  zero  :: d
+  one   :: d
+  (⊕)  :: d -> d -> d
+  (⊗)  :: d -> d -> d
 
-example1 :: Expr X
-example1 = Times (Var X) (Plus (Var X) One)
+-- | All numbers are semirings
+instance Num a => Semiring a where
+  zero  = 0
+  one   = 1
+  (⊕)  = (+)
+  (⊗)  = (*)
 
--- Semirings
+-- | The "free" semiring instance
+instance {-# OVERLAPPING #-} Semiring (Expr v) where
+  zero = Zero
+  one  = One
+  (⊕) = Plus
+  (⊗) = Times
 
-class Monoid d => Semiring d where
-   zero   :: d
-   one    :: d
-   plus   :: d -> d -> d
-   times  :: d -> d -> d
-
-infixl 6 `plus`
-infixl 7 `times`
-
-instance {-# OVERLAPPABLE #-} Num a => Semigroup a where
-   (<>) = (+)
-
-instance {-# OVERLAPPABLE #-} Num a => Monoid a where
-   mempty = 0
-
-instance {-# OVERLAPPABLE #-} Num a => Semiring a where
-   zero   = 0
-   one    = 1
-   plus   = (+)
-   times  = (*)
-
-instance  Semigroup (Expr v) where
-   (<>) = plus
-
-instance  Monoid (Expr v) where
-   mempty = zero
-
-instance  Semiring (Expr v) where
-   zero   = Zero
-   one    = One
-   plus   = Plus
-   times  = Times
-
--- Evaluation
-
+-- | The function 'eval var :: Expr v -> d' is a (semiring) homomorphism for any choice of 'var'.
+--   It interprets a symbolic expression to a semiring d, given a mapping from variables v to d.
 eval :: Semiring d => (v -> d) -> Expr v -> d
-eval var (Var x)         =  var x
-eval var Zero            =  zero
-eval var One             =  one
-eval var (Plus   e1 e2)  =  eval var e1  `plus`   eval var e2
-eval var (Times  e1 e2)  =  eval var e1  `times`  eval var e2
+eval var (Var x)       = var x
+eval var Zero          = zero
+eval var One           = one
+eval var (Plus e1 e2)  = eval var e1 ⊕ eval var e2
+eval var (Times e1 e2) = eval var e1 ⊗ eval var e2
 
-test1 :: Int
-test1 = eval (\X -> 5) example1
--- 30
+-- | Evaluate 'x * (x + 1)' for x = 5 with the Int semiring
+run_example_1 :: Int
+run_example_1 = eval (\X -> 5) example_1
 
--- Symbolic Differentiation
+{-- Symbolic differentation
+--}
 
-deriv :: Eq v => v -> Expr v -> Expr v
-deriv x (Var y)         =  if x == y then One else Zero
-deriv x Zero            =  Zero
-deriv x One             =  Zero
-deriv x (Plus   e1 e2)  =  Plus (deriv x e1) (deriv x e2)
-deriv x (Times  e1 e2)  =  Plus (Times e2 (deriv x e1)) (Times e1 (deriv x e2))
+-- | The following function correctly expresses symbolic differentation,
+--   but cannot be defined in terms of eval (structural recursion) because of the case of Times
+symbolicDeriv :: Eq v => v -> Expr v -> Expr v
+symbolicDeriv x (Var y)         =  if x == y then One else Zero
+symbolicDeriv x Zero            =  Zero
+symbolicDeriv x One             =  Zero
+symbolicDeriv x (Plus   e1 e2)  =  symbolicDeriv x e1 ⊕ symbolicDeriv x e2
+symbolicDeriv x (Times  e1 e2)  =
+  -- | e2 and e1 appear *outside* of recursive calls
+  (e2 ⊗ symbolicDeriv x e1) ⊕ (e1 ⊗ symbolicDeriv x e2)
 
-deriv' :: Eq v => v -> Expr v -> (Expr v, Expr v)
-deriv' x (Var y)         =  (Var y,  if x == y then one else zero)
-deriv' x Zero            =  (zero,   zero)
-deriv' x One             =  (one,    zero)
-deriv' x (Plus   e1 e2)  =  let  (e1', de1)  =  deriv' x e1
-                                 (e2', de2)  =  deriv' x e2
-                            in   (e1' `plus` e2', de1 `plus` de2)
-deriv' x (Times  e1 e2)  =  let  (e1', de1)  =  deriv' x e1
-                                 (e2', de2)  =  deriv' x e2
-                            in   (e1 `times` e2', (e2' `times` de1) `plus` (e1' `times` de2))
+-- | By defining symbolic diff to also return the original expression (thus becoming automatic differentation):
+--    symbolicDeriv' x e = (e, symbolicDeriv x e)
+--   We can redefine the case of Times to be structurally recursive
+symbolicDeriv' :: Eq v => v -> Expr v -> (Expr v, Expr v)
+symbolicDeriv' x (Var y)         =  (Var y,  if x == y then One else Zero)
+symbolicDeriv' x Zero            =  (Zero,   Zero)
+symbolicDeriv' x One             =  (One,    Zero)
+symbolicDeriv' x (Plus   e1 e2)  =  let  (e1', de1)  =  symbolicDeriv' x e1
+                                         (e2', de2)  =  symbolicDeriv' x e2
+                                    in   (e1' ⊕ e2', de1 ⊕ de2)
+symbolicDeriv' x (Times  e1 e2)  =
+  let (e1', de1)  =  symbolicDeriv' x e1
+      (e2', de2)  =  symbolicDeriv' x e2
+  -- | e1' and e2' are results of recursive calls, allowing symbolicDeriv' to be defined in terms of eval
+  in  (e1' ⊗ e2', (e2' ⊗ de1) ⊕ (e1' ⊗ de2))
 
-symbolic :: Eq v => v -> Expr v -> Dual (Expr v)
-symbolic x  = eval gen where  gen y  = D (Var y) (ddx y)
-                              ddx y  = if x == y then one else zero
+{-- Dual numbers
+--}
 
--- Dual numbers
+-- | A dual number is a tuple whose components are drawn from an arbitrary semiring,
+--   Representing
+data Dual d = D { primal :: d, tangent :: d } deriving Functor
 
-data Dual d = D { fstD :: d, sndD :: d }  deriving (Show, Functor)
+-- | Any semiring d gives rise to a semiring structure Dual d, whose semiring operations
+--   precisely follow the definition of symbolicDeriv'.
+instance {-# OVERLAPPING #-} Semiring d => Semiring (Dual d) where
+  zero        = D zero zero
+  one         = D one zero
+  (D f df) ⊕ (D g dg)  = D (f ⊕ g) (df ⊕ dg)
+  (D f df) ⊗ (D g dg) = D (f ⊗ g) ((g ⊗ df) ⊕ (f ⊗ dg))
 
-instance  {-# OVERLAPS #-} Semiring d => Semigroup (Dual d) where
-   (<>) = plus
+-- | Symbolic differentiation, also as an instance of eval like symbolicDeriv',
+--   but now defined in terms of eval & into the semiring of dual numbers over symbolic expressions.
+symbolicDeriv'' :: Eq v => v -> Expr v -> Dual (Expr v)
+symbolicDeriv'' x = eval gen
+  where
+    gen y = D (Var y) (ddx y)
+    ddx y = if x == y then one else zero
 
-instance  {-# OVERLAPS #-} Semiring d => Monoid (Dual d) where
-   mempty = zero
+{-- Forward AD
+--}
 
-instance  {-# OVERLAPS #-} Semiring d => Semiring (Dual d) where
-   zero                         = D  zero           zero
-   one                          = D  one            zero
-   (D f df)  `plus`   (D g dg)  = D  (f `plus`  g)  (df `plus` dg)
-   (D f df)  `times`  (D g dg)  = D  (f `times` g)  ((g `times` df) `plus` (f `times` dg))
+-- | AD algorithms are those that compute 1) both the value and derivative of an expression, 2) at a point.
+--   Forward AD is hence definable by composing:
+--       1) symbolic differentation (into the semiring  Dual (Expr v))
+--   and 2) evaluation of symbolic expressions (Expr v) into a "numeric" semiring d.
+forwardAD :: (Semiring d, Eq v) => (v -> d) -> v -> Expr v -> Dual d
+forwardAD var x = fmap (eval var)      -- | evaluation (Expr v -> d) at a point into a semiring d
+                . symbolicDeriv'' x    -- | symbolic differentiation into the semiring Dual (Expr v)
 
--- Classic Forward-mode Automatic Differentiation
+-- | Alternatively written like:
+forwardAD' :: (Semiring d, Eq v) => (v -> d) -> v -> Expr v -> Dual d
+forwardAD' var x = eval gen
+  where
+    gen y = D (var y) (ddx y)
+    ddx y = if x == y then one else zero
 
-forwardAD :: (Eq v, Semiring d) => (v -> d) -> v -> Expr v -> Dual d
-forwardAD var x = eval gen where  gen y  = D (var y) (ddx y)
-                                  ddx y  = if x == y then one else zero
+run_forwardAD :: Dual Int
+run_forwardAD = forwardAD' (\X -> 5) X example_1
 
-test2 :: Dual Int
-test2 = forwardAD (\X -> 5) X example1
--- D {fstD = 30, sndD = 11}
+{-- Symbolic AD as Forward AD
+--}
+
+-- | Symbolic evaluates into the symbolic semiring Expr v,
+-- | Automatic evaluates into a numeric semiring d
+
+-- | We can thus recover Symbolic from ForwardAD, by interpreting variables with Var :: v -> Expr v
+symbolicDeriv''' :: Eq v => v -> Expr v -> Dual (Expr v)
+symbolicDeriv''' = forwardAD Var
