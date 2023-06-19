@@ -6,12 +6,12 @@
 {-# LANGUAGE TypeOperators #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 
-module Extensions where
+module Original.Extensions where
 
-import Background
-import AbstractAD
-import ForwardMode
-import ReverseMode
+import Original.Background
+import Original.AbstractAD
+import Original.ForwardMode
+import Original.ReverseMode
 
 import Data.Map
 import Prelude hiding (abs,lookup,sin,cos)

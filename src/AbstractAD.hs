@@ -4,6 +4,8 @@
 {-# LANGUAGE TypeOperators #-}
 {-# LANGUAGE DeriveFunctor #-}
 
+module AbstractAD where
+
 import Prelude hiding (Monoid(..), (<>))
 
 {-- Modules E over Semirings D

@@ -2,10 +2,10 @@
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE DeriveFunctor #-}
 
-module ForwardMode where
+module Original.ForwardMode where
 
 import Original.Background
-import AbstractAD
+import Original.AbstractAD
 
 import Data.Map
 

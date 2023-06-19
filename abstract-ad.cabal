@@ -45,6 +45,6 @@ library
                         mtl
   exposed-modules:      AbstractAD,
                         Background,
-                        ForwardMode,
-                        Example.ForwardAD
+                        Example.ForwardAD,
+                        Original.Background
   default-language:   Haskell2010
