@@ -8,34 +8,19 @@ module AbstractAD where
 
 import Prelude hiding (Monoid(..), (<>))
 
-{-- Modules E over Semirings D
+{-- | ABSTRACTION 1: Modules E over Semirings D
 --}
 
-{- Some background:
-    A "Field" is a set F that supports two  operations:
-      1. Addition ,             f1 + f2     where f1, f2 ∈ F      (Commutative)
-      2. Multiplication,        f1 * f2     where f1, f2 ∈ F      (Commutative)
-    A "Vector Space over a Field F (of scalars)" is a set V that supports:
-      1. Vector addition,       v1 + v2     where   v1, v2 ∈ V
-      2. Scalar multiplication, f • v       where f ∈ F, v ∈ V
-    A "Ring" is a set R that generalises the notion of a Field, by not requiring multiplication to be commutative. It is:
-      1. Addition,              r1 + r2     where r1, r2 ∈ R
-      2. Multiplication,        r1 * r2     where r1, r2 ∈ R    (R is a monoid under (*))
-    A "Module over a Ring R" is a set M that generalises the notion of a Vector Space, by simply replacing the Field F with the Ring R:
-      1. Vector addition,       v + w     where v, w ∈ V
-      2. Scalar multiplication, f • v     where f ∈ F, v ∈ V
--}
-
-{- | A Monoid E.
+{- | A Monoid (E, <>).
    For the purposes of dual numbers, (<>) is interpreted additively (⊕) rather than multiplicatively
 -}
 class Monoid e where
   mzero :: e
   (<>)  :: e -> e -> e
 
-{- | A Semiring is a set D that can be viewed as two monoids of the same underlying type.
-    1. The first monoid is additive (⊕) (and also commutative).
-    2. The second monoid is multiplicative (⊗).
+{- | A Semiring (D, ⊕, ⊗) is two monoids of the same underlying type.
+    1. An additive monoid      (D, ⊕) which is also commutative.
+    2. A multiplicative monoid (D, ⊕).
 -}
 class Semiring d where
   zero :: d
@@ -43,28 +28,29 @@ class Semiring d where
   (⊕)  :: d -> d -> d
   (⊗)  :: d -> d -> d
 
-{- | A "Module E over a Semiring D" is :
-     1. A commutative additive Monoid E.
-          mzero :: e
-          (<>)  :: e -> e -> e
-     2. Together with *scalar* multiplication that distributes over (<>).
+{- | A "Module (E, <>) over a Semiring of scalars (D, ⊕, ⊗)" is :
+     1. An additive Monoid (E, <>) which is also commutative.
+     2. An operation for *scalar* multiplication that distributes over (<>).
           (•) :: d -> e -> e
-  This abstraction generalises the notion of a gradient.
+     This generalises the notion of a Vector Space V over a Field of scalars F
 -}
 class (Semiring d, Monoid e) => Module d e | e -> d where
   (•) :: d -> e -> e
 
--- | Every semiring d is trivially a d-module, by setting scalar multiplication to be multiplication
+-- | Every Semiring D is trivially a D-Module, by setting scalar multiplication to be multiplication
 instance (Semiring d, Monoid d) => Module d d where
   (•) :: d -> d -> d
   (•) = (⊗)
 
-{- Nagata numbers d ⋉ e,
-   as a generalisation over dual numbers Dual d where the primal and tangent have different types
--}
+{-- | ABSTRACTION 2: Nagata Numbers D ⋉ E
+   This generalises over dual numbers Dual D by letting the primal and tangent have different types.
+   Intuitively:
+    D is a scalar representing the result of evaluation
+    E is a vector representing the gradient
+--}
 data d ⋉ e = Nagata d e deriving Functor
 
--- | Every d-module e admits a semiring structure of Nagata numbers d ⋉ e
+-- | Every D-Module E admits a Semiring of Nagata numbers D ⋉ E
 instance (Module d e) => Semiring (d ⋉ e) where
   zero :: Module d e => d ⋉ e
   zero = Nagata zero mzero
@@ -75,7 +61,7 @@ instance (Module d e) => Semiring (d ⋉ e) where
   (⊗) :: Module d e => d ⋉ e -> d ⋉ e -> d ⋉ e
   (⊗) (Nagata f df) (Nagata g dg) = Nagata (f ⊗ g) ((f • dg) <> (g • df))
 
-{- Kronecker Delta
+{- ABSTRACTION 3: Kronecker Delta
 
 -}
 class Module d e => Kronecker v d e where
