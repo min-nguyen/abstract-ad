@@ -3,6 +3,7 @@
 {-# LANGUAGE InstanceSigs #-}
 {-# LANGUAGE TypeOperators #-}
 {-# LANGUAGE DeriveFunctor #-}
+{-# LANGUAGE ScopedTypeVariables #-}
 
 module AbstractAD where
 
@@ -32,15 +33,20 @@ class Semiring d where
      1. An additive Monoid (E, <>) which is also commutative.
      2. An operation for *scalar* multiplication that distributes over (<>).
           (•) :: d -> e -> e
-     This generalises the notion of a Vector Space V over a Field of scalars F
+     Intuitively, D is a scalar and E is a vector.
 -}
+-- Knowing the type of Vectors E determines the type of Scalars D.
 class (Semiring d, Monoid e) => Module d e | e -> d where
   (•) :: d -> e -> e
 
--- | Every Semiring D is trivially a D-Module, by setting scalar multiplication to be multiplication
-instance (Semiring d, Monoid d) => Module d d where
-  (•) :: d -> d -> d
-  (•) = (⊗)
+{- | Every Semiring D is trivially a D-Module, by setting scalar multiplication to be multiplication.
+     Intuitively, if in Module D E, we have that the vector E is infact a scalar, then the scalar D must be the same type.
+      instance (Semiring d, Monoid d) => Module d d where
+        (•) :: d -> d -> d
+        (•) = (⊗)
+    This needs to be commented out to avoid problems with functional dependencies, otherwise Haskell forces E and D
+    to always be the same, and E must therefore always be a semiring.
+-}
 
 {-- | ABSTRACTION 2: Nagata Numbers D ⋉ E
    This generalises over dual numbers Dual D by letting the primal and tangent have different types.
@@ -62,8 +68,33 @@ instance (Module d e) => Semiring (d ⋉ e) where
   (⊗) (Nagata f df) (Nagata g dg) = Nagata (f ⊗ g) ((f • dg) <> (g • df))
 
 {- ABSTRACTION 3: Kronecker Delta
-
+    Delta computes the partial derivatives of variables, in the form of a D-Module E, wrt a specific variable x_i
+  Intuitively, it encodes the basis vector of variables E for a specific variable V.
+  For example, in the module R^3 of real numbers R comprised of variables x_i:
+    delta (x_0) = [1, 0, 0]
+    delta (x_1) = [0, 1, 0]
+    delta (x_2) = [0, 0, 1]
 -}
 class Module d e => Kronecker v d e where
   delta :: v -> e
 
+{- ABSTRACT AD:
+-}
+-- | 'Expr v' is a symbolic expression that captures polynomials over variables 'v'
+data Expr v = Var v | Zero | One | Plus (Expr v) (Expr v) | Times (Expr v) (Expr v)
+
+-- | The type 'X' for a single variable
+data X = X deriving Eq
+
+eval :: Semiring d => (v -> d) -> Expr v -> d
+eval var (Var x)       = var x
+eval var Zero          = zero
+eval var One           = one
+eval var (Plus e1 e2)  = eval var e1 ⊕ eval var e2
+eval var (Times e1 e2) = eval var e1 ⊗ eval var e2
+
+abstractAD :: forall v d e. Kronecker v d e => (v -> d) -> Expr v -> d ⋉ e
+abstractAD var = eval gen where
+  -- | gen (by using var) turns each variable into a Nagata number
+  gen :: (v -> d ⋉ e)
+  gen x = Nagata (var x) (delta x)
