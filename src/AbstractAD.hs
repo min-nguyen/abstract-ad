@@ -4,6 +4,8 @@
 {-# LANGUAGE TypeOperators #-}
 {-# LANGUAGE DeriveFunctor #-}
 {-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE FlexibleContexts #-}
+{-# LANGUAGE UndecidableInstances #-}
 
 module AbstractAD where
 
@@ -29,23 +31,25 @@ class Semiring d where
   (⊕)  :: d -> d -> d
   (⊗)  :: d -> d -> d
 
-{- | A "Module (E, <>) over a Semiring of scalars (D, ⊕, ⊗)" is :
-     1. An additive Monoid (E, <>) which is also commutative.
-     2. An operation for *scalar* multiplication that distributes over (<>).
+{- | A D-Module (E, <>) is:
+     1. A Monoid   (E, <>)   of Vectors, where <> is additive and commutative.
+     2. A Semiring (D, ⊕, ⊗) of Scalars.
+     3. Scalar multiplication (•) that distributes over (<>).
           (•) :: d -> e -> e
-     Intuitively, D is a scalar and E is a vector.
 -}
--- Knowing the type of Vectors E determines the type of Scalars D.
-class (Semiring d, Monoid e) => Module d e | e -> d where
+class (Semiring d, Monoid e) => Module d e | e -> d where -- Knowing the Vector type E determines the Scalar type D.
   (•) :: d -> e -> e
 
-{- | Every Semiring D is trivially a D-Module, by setting scalar multiplication to be multiplication.
-     Intuitively, if in Module D E, we have that the vector E is infact a scalar, then the scalar D must be the same type.
+{- | Every Semiring (D, ⊕, ⊗) is trivially a D-Module, by setting scalar multiplication to be multiplication.
+     Intuitively, if in Module D E the "vector" E is infact a scalar like a Double, then the scalar D must be a Double.
       instance (Semiring d, Monoid d) => Module d d where
         (•) :: d -> d -> d
         (•) = (⊗)
-    This needs to be commented out to avoid problems with functional dependencies, otherwise Haskell forces E and D
-    to always be the same, and E must therefore always be a semiring.
+    The above needs to be commented out to avoid problems with functional dependencies, otherwise Haskell forces E and D
+    to always be the same and E hence must always be a semiring (scalar).
+    However, we can write concretes instance for each possible case where E is itself a semiring:
+      instance (Monoid Int, Semiring Int) => Module Int Int where
+        (•) = (⊗)
 -}
 
 {-- | ABSTRACTION 2: Nagata Numbers D ⋉ E
@@ -56,15 +60,12 @@ class (Semiring d, Monoid e) => Module d e | e -> d where
 --}
 data d ⋉ e = Nagata d e deriving Functor
 
--- | Every D-Module E admits a Semiring of Nagata numbers D ⋉ E
+{- |  Every D-Module E admits a *Semiring* (D ⋉ E, ⊕, ⊗) of Nagata numbers
+-}
 instance (Module d e) => Semiring (d ⋉ e) where
-  zero :: Module d e => d ⋉ e
   zero = Nagata zero mzero
-  one :: Module d e => d ⋉ e
-  one = Nagata one mzero
-  (⊕) :: Module d e => d ⋉ e -> d ⋉ e -> d ⋉ e
+  one  = Nagata one mzero
   (⊕) (Nagata f df) (Nagata g dg) = Nagata (f ⊕ g) (df <> dg)
-  (⊗) :: Module d e => d ⋉ e -> d ⋉ e -> d ⋉ e
   (⊗) (Nagata f df) (Nagata g dg) = Nagata (f ⊗ g) ((f • dg) <> (g • df))
 
 {- ABSTRACTION 3: Kronecker Delta
@@ -93,8 +94,7 @@ eval var One           = one
 eval var (Plus e1 e2)  = eval var e1 ⊕ eval var e2
 eval var (Times e1 e2) = eval var e1 ⊗ eval var e2
 
-abstractAD :: forall v d e. Kronecker v d e => (v -> d) -> Expr v -> d ⋉ e
+abstractAD :: Kronecker v d e => (v -> d) -> Expr v -> d ⋉ e
 abstractAD var = eval gen where
   -- | gen (by using var) turns each variable into a Nagata number
-  gen :: (v -> d ⋉ e)
   gen x = Nagata (var x) (delta x)
