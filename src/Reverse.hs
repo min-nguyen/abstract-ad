@@ -8,7 +8,9 @@ import Prelude hiding ((<>), Monoid)
 import Data.Map
 import Forward
 
-{- Rather than working directly with Module D E:
+{- ACCUMULATING MULTIPLICATION
+
+   Rather than working directly with Module D E:
      "Module E over Semiring D"
    we now work with the isomorphic type Hom D E:
      "Homomorphisms from Semiring D (scalars) to Module E (vectors)".
@@ -16,7 +18,7 @@ import Forward
 -}
 newtype Hom d e = Hom (d -> e)
 
--- | Vector addtion is still linear
+-- | Vector addition is still linear
 instance Monoid e   => Monoid (Hom d e) where
   mzero          = Hom (const mzero)
   Hom f <> Hom g = Hom (\d -> f d <> g d)
@@ -37,10 +39,9 @@ instance {-# OVERLAPPABLE #-}
 instance (Ord v, Semiring d) => Kronecker v d (Hom d (Sparse v d)) where
   delta x        = Hom (\d -> Sparse (singleton x d))
 
-
 {- | Sparse Reverse AD specialises the Abstract AD to work with Nagata numbers "D ⋉ Hom D (Sparse V D)"
-      whose primals are scalars D,
-      and tangents Hom D (Sparse V D) are decomposed into:
+      - Primals are scalars D,
+      - Tangents Hom D (Sparse V D) are decomposed into:
            1. An accumulator D for scalar multiplication
            2. A gradient vector (Sparse V D) as a sparse map
 -}
