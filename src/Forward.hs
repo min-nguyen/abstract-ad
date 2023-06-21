@@ -23,8 +23,9 @@ instance Semiring d => Module d (Dense v d) where
 instance (Semiring d, Eq v) => Kronecker v d (Dense v d) where
   delta v = Dense (\v' -> if v == v' then one else zero)
 
-{- | Dense Forward AD specialises the Abstract AD to work with Nagata numbers "D ⋉ Dense V D"
-      whose primals are scalars D, and tangents are gradient vectors Dense V D.
+{- | Dense Forward AD specialises the Abstract AD to work with Nagata numbers "D ⋉ Dense V D", where
+       - Primals are scalars D
+       - Tangents are gradient vectors (Dense V D) as total functions.
 
       Rather than computing a value in (essentially):
         "forwardAD :: ... -> V -> (D ⋉ D)",
@@ -38,9 +39,9 @@ forwardAD_Dense = abstractAD
 
 
 {-- | Sparse V D represents a Gradient Vector as a Map from variables V to their partial derivatives (scalars) D.
-    This exploits that if a sub-expression e does not contain variable v, then its partial derivatives is zero.
-    In particular, if that sub-expression is itself a variable v' s.t v' =/= v, then its partial derivative is zero.
-    We use Sparse Maps that avoid explicitly representing these zeros.
+This exploits that if a sub-expression e does not contain variable v, then its partial derivatives is zero.
+In particular, if that sub-expression is itself a variable v' s.t v' =/= v, then its partial derivative is zero.
+We use Sparse Maps that avoid explicitly representing these zeros.
 --}
 newtype Sparse v d = Sparse (Map v d)
 
@@ -55,8 +56,14 @@ instance (Ord v, Semiring d) => Module d (Sparse v d) where
 instance (Ord v, Semiring d) => Kronecker v d (Sparse v d) where
   delta v = Sparse (singleton v one)          -- The only non-zero entry for delta x is for x.
 
+{- | Sparse Forward AD specialises the Abstract AD to work with Nagata numbers "D ⋉ Sparse V D", where
+      - Primals are scalars D,
+      - Tangents are gradient vectors (Sparse V D) as sparse maps.
+-}
 forwardAD_Sparse :: (Semiring d, Ord v) => (v -> d) -> Expr v -> d ⋉ Sparse v d
 forwardAD_Sparse = abstractAD
+
+
 
 
 {-- | A Kronecker Homomorphism maps from one type of Module (Vector) to another.
