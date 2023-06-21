@@ -47,3 +47,8 @@ instance (Ord v, Semiring d) => Kronecker v d (Hom d (Sparse v d)) where
 -}
 reverseAD_Sparse :: (Ord v, Semiring d) => (v -> d) -> Expr v -> d ⋉ Hom d (Sparse v d)
 reverseAD_Sparse = abstractAD
+
+
+{- ACCUMULATING ADDITION
+-}
+newtype Cayley e = Cayley (e -> e)
