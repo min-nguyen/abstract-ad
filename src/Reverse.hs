@@ -2,6 +2,8 @@
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE TypeOperators #-}
 {-# LANGUAGE UndecidableInstances #-}
+{-# OPTIONS_GHC -Wno-unrecognised-pragmas #-}
+{-# HLINT ignore "Use camelCase" #-}
 module Reverse where
 
 import AbstractAD
@@ -109,6 +111,14 @@ instance  (Ord v, Semiring d)
            {- d • one = d -}
            = Hom (\d -> Cayley (\(Sparse m) -> Sparse (insertWith (⊕) v d m)))
 
-{- | By using the type composition "Hom d (Cayley (Sparse v d))"
-  1.
+{- | By using the specific type "Hom d (Cayley (Sparse v d))" for gradient vectors:
+      1. We get to use the specific instance "Module d (Hom d e)" , where:
+          Scalar multiplication (•) is O(1), by accumulating in d
+      2. We get to use the specific instance "Monoid (Cayley e)", where:
+          Vector addition (<>) is O(1), by replacing it with function composition
+      3. We get to use the specific instance "Kronecker v d (Hom d (Cayley (Sparse v d)))", where:
+          Instantiating basis vectors (delta) is O(log n), by using "insertWith (⊕)" on the sparse map.
 -}
+
+reverseAD_Cayley :: (Ord v, Semiring d) => (v -> d) -> Expr v -> d ⋉ Hom d (Cayley (Sparse v d))
+reverseAD_Cayley = abstractAD
