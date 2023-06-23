@@ -12,32 +12,38 @@ import Data.Map
 import Forward
 
 {- ACCUMULATING MULTIPLICATION
+   Rather than working directly in E as vectors with scalar multiplication:
+     Monoid   (E, <>)
+     Semiring (D, ⊗)
+     Module   (E, •, D)
+   we now work with the isomorphic type Hom D E as homomorphisms from scalars D to vectors E
+     Monoid   (D -> E, <>)
+     Semiring (D, ⊗)
+     Module   (D -> E, •, D)
+    such that Hom D E is specifically functions (D -> E) with the *multiplicative homogeneity* property:
+      f (d1 ⊗ d2) = d1 • f d2         where f :: D -> E
 
-   Rather than working directly with Module D E:
-     "Module E over Semiring D"
-   we now work with the isomorphic type Hom D E:
-     "Homomorphisms from Semiring D (scalars) to Module E (vectors)".
    Intuitively, Hom D E augments a Vector E with an _accumulator_ for a Scalar Multiplier D.
 -}
 newtype Hom d e = Hom (d -> e)
 
--- | Vector addition is still linear
+-- | Vector addition is still O(n)
 instance Monoid e   => Monoid (Hom d e) where
   mzero          = Hom (const mzero)
   Hom f <> Hom g = Hom (\d -> f d <> g d)
 
--- | Scalar multiplication (•) now _accumulates_ in the function parameter D in Hom (D -> E),
---   using the cheaper semiring multiplication (⊗), in O(1).
+-- | Scalar multiplication (•) is O(1) by _accumulating_ in the function parameter D in Hom D E
+--   with the cheaper semiring multiplication (⊗), in O(1).
 instance {-# OVERLAPPING #-} Module d e => Module d (Hom d e) where
   d • (Hom f)    = Hom (\d' -> f (d ⊗ d'))
 
--- | To instantiate a basis vector for the general type "Hom D E" for any tangent E:
+-- | Instantiating a basis vector for the general type "Hom D E" is O(n):
 --    1. We must first instantiate a basis vector of type D-Module E for variable V, generally in O(n).
 --    2. And then scalar multiply (•) this by an accumulator D, generally in O(n).
 instance {-# OVERLAPPABLE #-}
          Kronecker v d e     => Kronecker v d (Hom d e) where
   delta x        = Hom (\d  -> d • delta x)
--- | To instantiate a basis vector for the specific type "Hom D (Sparse V D)" that represents the tangent as a sparse map:
+-- | Instantiating a basis vector for the specific type "Hom D (Sparse V D)" is O(1):
 --    1. We can simply return the multiplicative accumulator D as the only map entry, in O(1).
 instance (Ord v, Semiring d) => Kronecker v d (Hom d (Sparse v d)) where
   delta x        = Hom (\d -> Sparse (singleton x d))
@@ -45,42 +51,48 @@ instance (Ord v, Semiring d) => Kronecker v d (Hom d (Sparse v d)) where
 {- | Sparse Reverse AD specialises the Abstract AD to work with Nagata numbers "D ⋉ Hom D (Sparse V D)"
       - Primals are scalars D,
       - Tangents Hom D (Sparse V D) are decomposed into:
-           1. An accumulator D for scalar multiplication
-           2. A gradient vector (Sparse V D) as a sparse map
+           (i)  An accumulator D for scalar multiplication
+           (ii) A gradient vector (Sparse V D) as a sparse map
 -}
 reverseAD_Sparse :: (Ord v, Semiring d) => (v -> d) -> Expr v -> d ⋉ Hom d (Sparse v d)
 reverseAD_Sparse = abstractAD
 
+
+
 {- ACCUMULATING ADDITION
 
-  Rather than working directly in E as vectors that add:
-     Monoid (E, <>)
-  We now work with the Cayley representation of E as functions that compose:
-     Monoid (Cayley E, .)
+  Rather than working directly in E as vectors with element-wise addition:
+     Monoid (E, (<>))
+  We now work with the type Cayley E as a function representation of vectors with element-wise addition:
+     Monoid (E -> E, (<>))
+    such that Cayley E is specifically functions (E -> E) with the *additive homogeneity* property:
+       f (e1 <> e2) = e1 <> (f e2)    where f :: E -> E
 -}
 newtype Cayley e = Cayley (e -> e)
 
-rep :: Monoid e => e -> Cayley e
-rep e = Cayley (<> e)
-abs :: Monoid e => Cayley e -> e
-abs (Cayley f) = f mzero
+rep_c :: Monoid e => e -> Cayley e
+rep_c e = Cayley (<> e)
+abs_c :: Monoid e => Cayley e -> e
+abs_c (Cayley f) = f mzero
 
--- | Vector addition is now represented by function composition which is O(1)
+-- | Vector addition is O(1), now represented by function composition
 instance Monoid e   => Monoid (Cayley e) where
   mzero = Cayley id
   Cayley f <> Cayley g = Cayley (f . g)
 
--- | To scalar multiply the general type "Cayley E":
+-- | Scalar multiplication (•) is O(n):
 --    1. We must convert the function representation (E -> E) to a vector E
 --    2. We must scalar multiply this by D, in O(n)
 --    3. We must convert back the vector E to a function representation (E -> E)
 instance Module d e => Module d (Cayley e) where
-  d • (Cayley f) -- = rep (d • abs (Cayley f))
-                    = Cayley (<> (d • f mzero))
-  -- | Why can't we just write:
-  --  d • (Cayley f)            = Cayley ((d •) . f)
-  --  abs (Cayley ((d •) . f))  = d • (f mzero)
-                            --  = abs ((d •) .)
+  d • (Cayley f) -- = rep_c (d • abs_c (Cayley f))
+                    = Cayley (\e -> e <> (d • f mzero))
+-- | Note that this is semantically different to the following which does *not* produce a valid Cayley representation.
+--   This is because the result does not have the required additive homogenity property.
+--  d • (Cayley f)  = Cayley ((d •) . f)
+--                  = Cayley (\e -> d • (f e))
+
+
 
 -- | To instantiate a basis vector for the general type "Cayley E":
 --    1. We must instantiate a basis vector of type E for variable V, generally in O(n)
