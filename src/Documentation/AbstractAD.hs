@@ -90,7 +90,7 @@ class Module d e => Kronecker v d e where
 data Expr v = Var v | Zero | One | Plus (Expr v) (Expr v) | Times (Expr v) (Expr v)
 
 -- | The type 'X' for a single variable
-data X = X deriving (Eq, Ord, Show)
+data X = X | Y deriving (Eq, Ord, Show)
 
 eval :: Semiring d => (v -> d) -> Expr v -> d
 eval var (Var x)       = var x

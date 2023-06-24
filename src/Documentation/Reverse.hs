@@ -62,13 +62,14 @@ instance (Ord v, Semiring d) => Kronecker v d (Hom d (Sparse v d)) where
 reverseAD_Sparse :: (Ord v, Semiring d) => (v -> d) -> Expr v -> d ⋉ Hom d (Sparse v d)
 reverseAD_Sparse = abstractAD
 
-reverseAD_Sparse_example :: (Double, Maybe Double)
+reverseAD_Sparse_example :: (Double, Sparse X Double)
 reverseAD_Sparse_example =
   let var ::  X -> Double
-      var =  (\X -> 2.0)
-      -- Double ⋉ Dense X Double
-      Nagata result (Hom f) = reverseAD_Sparse var (Times (Var X) (Plus (Var X) One))     -- x * (x + 1))
-  in  (result, lookup X (f one))
+      var x = case x of X -> 5.0;
+                        Y -> 5.0
+      Nagata result (Hom f) = reverseAD_Sparse var $
+        Times (Times (Var Y) (Plus (Var X) One)) (Plus (Var X) (Var X))     -- x * (x + 1) * (x + x)
+  in  (result,  f one)
 
 {-- | ACCUMULATING ADDITION
     Rather than working directly in E as vectors with element-wise addition:
