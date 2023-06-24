@@ -31,7 +31,7 @@ class Semiring d where
   (⊕)  :: d -> d -> d
   (⊗)  :: d -> d -> d
 
--- | All numbers are semirings
+-- | All numbers are Semirings
 instance {-# OVERLAPPABLE #-} Num a => Semiring a where
   zero  = 0
   one   = 1
@@ -69,7 +69,7 @@ data d ⋉ e = Nagata d e deriving (Functor, Show)
 
 {- |  Every D-Module E admits a *Semiring* (D ⋉ E, ⊕, ⊗) of Nagata numbers
 -}
-instance (Module d e) => Semiring (d ⋉ e) where
+instance Module d e => Semiring (d ⋉ e) where
   zero = Nagata zero mzero
   one  = Nagata one mzero
   (⊕) (Nagata f df) (Nagata g dg) = Nagata (f ⊕ g) (df <> dg)
@@ -79,15 +79,14 @@ instance (Module d e) => Semiring (d ⋉ e) where
     Delta computes the partial derivatives of variables, in the form of a D-Module E, wrt a specific variable x_i
   Intuitively, it encodes the basis vector of variables E for a specific variable V.
   For example, in the module R^3 of real numbers R comprised of variables x_i:
-    delta (x_0) = [1, 0, 0]
-    delta (x_1) = [0, 1, 0]
-    delta (x_2) = [0, 0, 1]
+    delta (x_0) = [1, 0, 0], delta (x_1) = [0, 1, 0], delta (x_2) = [0, 0, 1]
 -}
 class Module d e => Kronecker v d e where
   delta :: v -> e
 
-{- ABSTRACT AD:
--}
+{-- | ABSTRACT AD:
+--}
+
 -- | 'Expr v' is a symbolic expression that captures polynomials over variables 'v'
 data Expr v = Var v | Zero | One | Plus (Expr v) (Expr v) | Times (Expr v) (Expr v)
 
