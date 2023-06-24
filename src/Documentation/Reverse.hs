@@ -8,7 +8,7 @@ module Documentation.Reverse where
 
 import Documentation.AbstractAD
 import Documentation.Forward
-import Prelude hiding (abs, (<>), Monoid)
+import Prelude hiding (lookup, abs, (<>), Monoid)
 import Data.Map
 
 {-- | ACCUMULATING MULTIPLICATION
@@ -20,8 +20,8 @@ import Data.Map
      Monoid   (D -> E, <>)
      Semiring (D, ⊕, ⊗)
      Module   (D -> E, •, D)
-    such that Hom D E is specifically functions (D -> E) with the *multiplicative homogeneity* property:
-      f (d1 ⊗ d2) = d1 • f d2         where f :: D -> E
+    such that Hom D E is specifically functions (f :: D -> E) with the *multiplicative homogeneity* property:
+      f (d1 ⊗ d2) = d1 • f d2
 
    Intuitively, Hom D E augments a Vector E with an _accumulator_ for a Scalar Multiplier D.
 --}
@@ -50,7 +50,7 @@ instance {-# OVERLAPPABLE #-}
 -- | Instantiating a basis vector for the specific type "Hom D (Sparse V D)" is O(1):
 --    1. We can simply return the multiplicative accumulator D as the only map entry, in O(1).
 instance (Ord v, Semiring d) => Kronecker v d (Hom d (Sparse v d)) where
-  delta x        = Hom (\d -> Sparse (singleton x d))
+  delta x        = Hom (\d -> singleton x d)
 
 {-- | SPARSE REVERSE-MODE AD specialises the Abstract AD to work with Nagata numbers "D ⋉ Hom D (Sparse V D)"
 
@@ -62,14 +62,21 @@ instance (Ord v, Semiring d) => Kronecker v d (Hom d (Sparse v d)) where
 reverseAD_Sparse :: (Ord v, Semiring d) => (v -> d) -> Expr v -> d ⋉ Hom d (Sparse v d)
 reverseAD_Sparse = abstractAD
 
+reverseAD_Sparse_example :: (Double, Maybe Double)
+reverseAD_Sparse_example =
+  let var ::  X -> Double
+      var =  (\X -> 2.0)
+      -- Double ⋉ Dense X Double
+      Nagata result (Hom f) = reverseAD_Sparse var (Times (Var X) (Plus (Var X) One))     -- x * (x + 1))
+  in  (result, lookup X (f one))
 
 {-- | ACCUMULATING ADDITION
     Rather than working directly in E as vectors with element-wise addition:
        Monoid (E, (<>))
     We now work with the type Cayley E as a function representation of vectors with element-wise addition:
        Monoid (E -> E, (<>))
-      such that Cayley E is specifically functions (E -> E) with the *additive homogeneity* property:
-        f (e1 <> e2) = e1 <> (f e2)    where f :: E -> E
+      such that Cayley E is specifically functions (f :: E -> E) with the *additive homogeneity* property:
+        f (e1 <> e2) = e1 <> (f e2)
 --}
 newtype Cayley e = Cayley (e -> e)
 
@@ -111,7 +118,7 @@ instance  (Ord v, Semiring d)
            {- Definition of delta on Sparse maps -}
            -- = Cayley (<> Sparse (singleton v one))
            {- The operation (<>) carries out "unionWith (⊕) m (singleton v one)", which is equivalent to -}
-           = Cayley (\(Sparse m) -> Sparse (insertWith (⊕) v one m))
+           = Cayley (\m -> insertWith (⊕) v one m)
 -- | Instantiating a basis vector for the specific type "Hom d (Cayley (Sparse v d))" is O(log n):
 --    1. We can simply insert (add) the accumulated scalar multiplier to the entry for variable V in the prepended map, in O(log n)
 instance  (Ord v, Semiring d)
@@ -123,7 +130,7 @@ instance  (Ord v, Semiring d)
            {- The operation (<>) carries out "unionWith (⊕) m (singleton v one)", which is equivalent to -}
            -- = Hom (\d -> d • Cayley (\(Sparse m) -> Sparse (insertWith (⊕) v one m)))
            {- d • one = d -}
-           = Hom (\d -> Cayley (\(Sparse m) -> Sparse (insertWith (⊕) v d m)))
+           = Hom (\d -> Cayley (\m -> insertWith (⊕) v d m))
 
 {-- | CAYLEY REVERSE-MODE AD specialises the Abstract AD to work with Nagata numbers "D ⋉ Hom d (Cayley (Sparse v d))".
 
