@@ -76,8 +76,7 @@ instance Module d e => Semiring (d ⋉ e) where
   (⊗) (Nagata f df) (Nagata g dg) = Nagata (f ⊗ g) ((f • dg) <> (g • df))
 
 {- ABSTRACTION 3: Kronecker Delta
-    Delta computes the partial derivatives of variables, in the form of a D-Module E, wrt a specific variable x_i
-  Intuitively, it encodes the basis vector of variables E for a specific variable V.
+    Delta computes the partial derivatives E (as a basis vector) of all variables V wrt a specific variable.
   For example, in the module R^3 of real numbers R comprised of variables x_i:
     delta (x_0) = [1, 0, 0], delta (x_1) = [0, 1, 0], delta (x_2) = [0, 0, 1]
 -}
