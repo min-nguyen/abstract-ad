@@ -14,11 +14,11 @@ import Forward
 {-- | ACCUMULATING MULTIPLICATION
    Rather than working directly in E as vectors with scalar multiplication:
      Monoid   (E, <>)
-     Semiring (D, ⊗)
+     Semiring (D, ⊕, ⊗)
      Module   (E, •, D)
-   we now work with the isomorphic type Hom D E as homomorphisms from scalars D to vectors E
+   We now work with the type Hom D E as homomorphisms from scalars D to vectors E
      Monoid   (D -> E, <>)
-     Semiring (D, ⊗)
+     Semiring (D, ⊕, ⊗)
      Module   (D -> E, •, D)
     such that Hom D E is specifically functions (D -> E) with the *multiplicative homogeneity* property:
       f (d1 ⊗ d2) = d1 • f d2         where f :: D -> E
@@ -26,6 +26,11 @@ import Forward
    Intuitively, Hom D E augments a Vector E with an _accumulator_ for a Scalar Multiplier D.
 --}
 newtype Hom d e = Hom (d -> e)
+
+rep_h :: Module d e => e -> Hom d e
+rep_h e = Hom (\d -> d • e)
+abs_h :: Module d e => Hom d e -> e
+abs_h (Hom f) = f one
 
 -- | Vector addition is still O(n)
 instance Monoid e   => Monoid (Hom d e) where
@@ -60,9 +65,9 @@ reverseAD_Sparse = abstractAD
 
 {-- | ACCUMULATING ADDITION
     Rather than working directly in E as vectors with element-wise addition:
-      Monoid (E, (<>))
+       Monoid (E, (<>))
     We now work with the type Cayley E as a function representation of vectors with element-wise addition:
-      Monoid (E -> E, (<>))
+       Monoid (E -> E, (<>))
       such that Cayley E is specifically functions (E -> E) with the *additive homogeneity* property:
         f (e1 <> e2) = e1 <> (f e2)    where f :: E -> E
 --}

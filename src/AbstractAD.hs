@@ -22,14 +22,21 @@ class Monoid e where
   (<>)  :: e -> e -> e
 
 {- | A Semiring (D, ⊕, ⊗) is two monoids of the same underlying type.
-    1. An additive monoid      (D, ⊕) which is also commutative.
-    2. A multiplicative monoid (D, ⊕).
+    1. An additive monoid       (D, ⊕) which is also commutative.
+    2. A  multiplicative monoid (D, ⊕).
 -}
 class Semiring d where
   zero :: d
   one  :: d
   (⊕)  :: d -> d -> d
   (⊗)  :: d -> d -> d
+
+-- | All numbers are semirings
+instance {-# OVERLAPPABLE #-} Num a => Semiring a where
+  zero  = 0
+  one   = 1
+  (⊕)  = (+)
+  (⊗)  = (*)
 
 {- | A D-Module (E, <>) is:
      1. A Monoid   (E, <>)   of Vectors, where <> is additive and commutative.
@@ -58,7 +65,7 @@ class (Semiring d, Monoid e) => Module d e | e -> d where -- Knowing the Vector 
     D is a scalar representing the result of evaluation
     E is a vector representing the gradient
 --}
-data d ⋉ e = Nagata d e deriving Functor
+data d ⋉ e = Nagata d e deriving (Functor, Show)
 
 {- |  Every D-Module E admits a *Semiring* (D ⋉ E, ⊕, ⊗) of Nagata numbers
 -}
@@ -85,7 +92,7 @@ class Module d e => Kronecker v d e where
 data Expr v = Var v | Zero | One | Plus (Expr v) (Expr v) | Times (Expr v) (Expr v)
 
 -- | The type 'X' for a single variable
-data X = X deriving Eq
+data X = X deriving (Eq, Ord, Show)
 
 eval :: Semiring d => (v -> d) -> Expr v -> d
 eval var (Var x)       = var x
@@ -98,3 +105,7 @@ abstractAD :: Kronecker v d e => (v -> d) -> Expr v -> d ⋉ e
 abstractAD var = eval gen where
   -- | gen (by using var) turns each variable into a Nagata number
   gen x = Nagata (var x) (delta x)
+
+-- | x * (x + 1)
+example_1 :: Expr X
+example_1 = Times (Var X) (Plus (Var X) One)

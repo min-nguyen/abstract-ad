@@ -37,6 +37,13 @@ instance (Semiring d, Eq v) => Kronecker v d (Dense v d) where
 forwardAD_Dense :: (Semiring d, Eq v) => (v -> d) -> Expr v -> d ⋉ Dense v d
 forwardAD_Dense = abstractAD
 
+forwardAD_Dense_example :: (Double, Double)
+forwardAD_Dense_example =
+  let var ::  X -> Double
+      var =  (\X -> 2.0)
+      -- Double ⋉ Dense X Double
+      Nagata result (Dense tangents) = forwardAD_Dense var (Times (Var X) (Plus (Var X) One))     -- x * (x + 1))
+  in  (result, tangents X)
 
 {-- | Sparse V D represents a Gradient Vector as a Map from variables V to their partial derivatives (scalars) D.
        (This exploits that if a sub-expression e does not contain variable v, then its partial derivatives is zero.
@@ -62,6 +69,14 @@ instance (Ord v, Semiring d) => Kronecker v d (Sparse v d) where
 --}
 forwardAD_Sparse :: (Semiring d, Ord v) => (v -> d) -> Expr v -> d ⋉ Sparse v d
 forwardAD_Sparse = abstractAD
+
+forwardAD_Sparse_example :: (Double, Maybe Double)
+forwardAD_Sparse_example =
+  let var ::  X -> Double
+      var =  (\X -> 2.0)
+      -- Double ⋉ Sparse X Double
+      Nagata result (Sparse tangents) = forwardAD_Sparse var (Times (Var X) (Plus (Var X) One))     -- x * (x + 1))
+  in  (result, Data.Map.lookup X tangents)
 
 
 
