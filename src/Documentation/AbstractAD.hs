@@ -7,7 +7,7 @@
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE UndecidableInstances #-}
 
-module AbstractAD where
+module Documentation.AbstractAD where
 
 import Prelude hiding (Monoid(..), (<>))
 

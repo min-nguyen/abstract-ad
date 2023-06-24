@@ -4,12 +4,12 @@
 {-# LANGUAGE UndecidableInstances #-}
 {-# OPTIONS_GHC -Wno-unrecognised-pragmas #-}
 {-# HLINT ignore "Use camelCase" #-}
-module Reverse where
+module Documentation.Reverse where
 
-import AbstractAD
+import Documentation.AbstractAD
+import Documentation.Forward
 import Prelude hiding (abs, (<>), Monoid)
 import Data.Map
-import Forward
 
 {-- | ACCUMULATING MULTIPLICATION
    Rather than working directly in E as vectors with scalar multiplication:

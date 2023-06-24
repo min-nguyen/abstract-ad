@@ -43,7 +43,8 @@ library
                         erf,
                         math-functions,
                         mtl
-  exposed-modules:      AbstractAD,
-                        Background,
-                        Example.ForwardAD
+  exposed-modules:      Documentation.AbstractAD,
+                        Documentation.Background,
+                        Documentation.Forward,
+                        Documentation.Reverse
   default-language:   Haskell2010

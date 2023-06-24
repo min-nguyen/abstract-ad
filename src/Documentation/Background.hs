@@ -4,7 +4,7 @@
 {-# OPTIONS_GHC -Wno-unrecognised-pragmas #-}
 {-# HLINT ignore "Use camelCase" #-}
 
-module Background where
+module Documentation.Background where
 
 -- | 'Expr v' is a symbolic expression that captures polynomials over variables 'v'
 data Expr v = Var v | Zero | One | Plus (Expr v) (Expr v) | Times (Expr v) (Expr v)

@@ -1,9 +1,9 @@
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE TypeOperators #-}
-module Forward where
+module Documentation.Forward where
 
-import AbstractAD
+import Documentation.AbstractAD
 import Prelude hiding (Monoid)
 import Data.Map
 
