@@ -46,5 +46,6 @@ library
   exposed-modules:      Documentation.AbstractAD,
                         Documentation.Background,
                         Documentation.Forward,
-                        Documentation.Reverse
+                        Documentation.Reverse,
+                        Example.ReverseAD
   default-language:   Haskell2010
