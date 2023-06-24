@@ -50,18 +50,18 @@ forwardAD_Dense_example =
         In particular, if that sub-expression is itself a variable v' s.t v' =/= v, then its partial derivative is zero.
         We use Sparse Maps that avoid explicitly representing these zeros.)
 --}
-newtype Sparse v d = Sparse (Map v d)
+type Sparse v d = Map v d
 
 -- | Gradient Vectors are Monoids that are additive
 instance (Ord v, Semiring d) => Monoid (Sparse v d) where
-  mzero                  = Sparse empty       -- Zero values are represented as missing map entries.
-  Sparse f1 <> Sparse f2 = Sparse (unionWith (⊕) f1 f2)
+  mzero    = empty       -- Zero values are represented as missing map entries.
+  f1 <> f2 = unionWith (⊕) f1 f2
 -- | Gradient Vectors are Modules over the type of their elements
 instance (Ord v, Semiring d) => Module d (Sparse v d) where
-  a • Sparse f = Sparse (fmap (a ⊗) f)        -- Zero values are missing entries and so will not be fmapped over.
+  a • f = fmap (a ⊗) f        -- Zero values are missing entries and so will not be fmapped over.
 -- | Gradient Vectors have a Kronecker-delta function
 instance (Ord v, Semiring d) => Kronecker v d (Sparse v d) where
-  delta v = Sparse (singleton v one)          -- The only non-zero entry for delta x is for x.
+  delta v = singleton v one          -- The only non-zero entry for delta x is for x.
 
 {-- | SPARSE FORWARD-MODE AD specialises the Abstract AD to work with Nagata numbers "D ⋉ Sparse V D", where
       - Primals are scalars D,
@@ -75,7 +75,7 @@ forwardAD_Sparse_example =
   let var ::  X -> Double
       var =  (\X -> 2.0)
       -- Double ⋉ Sparse X Double
-      Nagata result (Sparse tangents) = forwardAD_Sparse var (Times (Var X) (Plus (Var X) One))     -- x * (x + 1))
+      Nagata result tangents = forwardAD_Sparse var (Times (Var X) (Plus (Var X) One))     -- x * (x + 1))
   in  (result, Data.Map.lookup X tangents)
 
 
