@@ -25,7 +25,7 @@ instance (Ord v, Num d) => Num (Nagata v d) where
 
 instance (Ord v, Num d) => Fractional (Nagata v d) where
 instance (Ord v, Floating d) => Floating (Nagata v d) where
-  sin (N x dx) = N (sin x) (\d -> (dx (cos x )))
+  sin (N x dx) = N (sin x) (\d -> (dx (cos x * d)))
 
 nagata :: d -> v -> Nagata v d
 nagata x v = N x (\d -> singleton v d)
@@ -35,5 +35,5 @@ example1 = tangent (prog (nagata 5 "x")) 1
   where prog x = x * (x + 1) * (x + x)
 
 example2 :: Map String Double
-example2 = tangent (prog (nagata 5 "x1") (nagata 7 "x2")) 1
+example2 = tangent (prog (nagata 4 "x1") (nagata 7 "x2")) 1
   where prog x1 x2 = x1 * x2 + sin x2

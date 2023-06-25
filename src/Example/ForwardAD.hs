@@ -13,6 +13,9 @@ import Data.Number.Erf
 data Nagata v d = N { primal :: d, tangent :: (Map v d) }
   deriving Show
 
+nagata :: d -> v -> Nagata v d
+nagata x v = N x (singleton v x)
+
 instance (Ord v, Ord d, Num d) => Num (Nagata v d) where
   fromInteger n   = N (fromInteger n) empty
   N x dx + N y dy = N (x + y) (unionWith (+) dx dy)
@@ -54,3 +57,11 @@ normpdf x = exp (negate (x * x) / 2) / (sqrt (2 * pi))
 -- Probit function (inv cdf of normal)
 instance (Ord v, Ord d, Floating d, InvErf d) => InvErf (Nagata v d) where
   invnormcdf (N x dx) = N (invnormcdf x) (fmap (/ (normpdf (invnormcdf x))) dx)
+
+-- example1 ::  Map String Double
+example1 =  (prog (nagata 5 "x"))
+  where prog x = x * (x + 1) * (x + x)
+
+example2 :: Map String Double
+example2 = tangent (prog (nagata 4 "x1") (nagata 7 "x2"))
+  where prog x1 x2 = x1 * x2 + sin x2
