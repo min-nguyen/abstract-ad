@@ -6,9 +6,12 @@ module Example.ReverseAD where
 import Data.Map
 import Data.Number.Erf
 
-{-- | The tangent (dx :: d -> Map v d) is a continuation that takes an
-        - Adjoint, representing the rate-of-change of the *overall function* wrt the sub-expression that computes the current Nagata number
-
+{-- | An expression e evaluates to the nagata number N v (dx :: d -> Map v d).
+      The tangent is a continuation that takes the adjoint of e (i.e. the rate-of-change
+      of the *overall function* wrt e), and recursively decomposes this into the
+      rates-of-change of each sub-expression in e. These results can then be unioned
+      together, summing the rates-of-change that correspond to the same variable x_i
+      when occuring in multiple positions in e.
 --}
 data Nagata v d = N { primal  :: d
                     , tangent :: d -> Map v d
