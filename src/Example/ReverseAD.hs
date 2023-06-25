@@ -17,6 +17,14 @@ data Nagata v d = N { primal  :: d
                     , tangent :: d -> Map v d
                     }
 
+-- | Set the tangent to scale the trivial derivative dx/dx = 1 by the supplied adjoint.
+nagata :: Num d => d -> v -> Nagata v d
+nagata x v = N x (\d -> singleton v (1 * d))
+
+-- | Provide the tangent of the overall expression a seed value of 1 as the initial adjoint.
+runReverse :: Num d => Nagata v d -> Map v d
+runReverse = ($ 1) . tangent
+
 instance (Ord v, Num d) => Num (Nagata v d) where
   fromInteger n   = N (fromInteger n) (const empty)
   N x dx + N y dy = N (x + y) (\d -> unionWith (+) (dx d)       (dy d))
@@ -27,13 +35,10 @@ instance (Ord v, Num d) => Fractional (Nagata v d) where
 instance (Ord v, Floating d) => Floating (Nagata v d) where
   sin (N x dx) = N (sin x) (\d -> (dx (cos x * d)))
 
-nagata :: d -> v -> Nagata v d
-nagata x v = N x (\d -> singleton v d)
-
 example1 :: Map String Double
-example1 = tangent (prog (nagata 5 "x")) 1
+example1 = runReverse (prog (nagata 5 "x"))
   where prog x = x * (x + 1) * (x + x)
 
 example2 :: Map String Double
-example2 = tangent (prog (nagata 4 "x1") (nagata 7 "x2")) 1
-  where prog x1 x2 = x1 * x2 + sin x2
+example2 = runReverse (prog (nagata 4 "x1") (nagata 7 "x2"))
+  where prog x1 x2 = x1 * x2 + x2 * sin x2

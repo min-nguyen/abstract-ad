@@ -10,11 +10,16 @@ import Data.Number.Erf
 --   component is the gradient vector represented as a sparse
 --   map data structure from variable names to their partial
 --   derivative. Absent entries are zero.
-data Nagata v d = N { primal :: d, tangent :: (Map v d) }
+data Nagata v d = N { primal :: d, tangent :: Map v d }
   deriving Show
 
-nagata :: d -> v -> Nagata v d
-nagata x v = N x (singleton v x)
+-- | Set the initial tangent to the trivial derivative dx/dx = 1.
+nagata :: Num d => d -> v -> Nagata v d
+nagata x v = N x (singleton v 1)
+
+-- | Running forward AD simply extracts the map of partial derivates.
+runForward :: Nagata v d -> Map v d
+runForward = tangent
 
 instance (Ord v, Ord d, Num d) => Num (Nagata v d) where
   fromInteger n   = N (fromInteger n) empty
@@ -40,15 +45,14 @@ instance (Ord v, Ord d, Floating d) => Floating (Nagata v d) where
    sin (N x dx) = N (sin x) (fmap ((cos x) *) dx)
    cos (N x dx) = N (cos x) (fmap ((negate $ sin x) *) dx)
    tan (N x dx) = N (tan x) (fmap ((recip $ cos x ** 2) *) dx)
-   asin = error "undefined"
-   acos = error "undefined"
-   atan = error "undefined"
-   sinh = error "undefined"
-   cosh = error "undefined"
-   tanh = error "undefined"
-   asinh = error "undefined"
-   acosh = error "undefined"
-   atanh = error "undefined"
+
+example1 :: Map String Double
+example1 = runForward (prog (nagata 5 "x"))
+  where prog x = x * (x + 1) * (x + x)
+
+example2 :: Map String Double
+example2 = runForward (prog (nagata 4 "x1") (nagata 7 "x2"))
+  where prog x1 x2 = x1 * x2 + x2* sin x2
 
 -- Standard Normal PDF
 normpdf :: Floating d => d -> d
@@ -57,11 +61,3 @@ normpdf x = exp (negate (x * x) / 2) / (sqrt (2 * pi))
 -- Probit function (inv cdf of normal)
 instance (Ord v, Ord d, Floating d, InvErf d) => InvErf (Nagata v d) where
   invnormcdf (N x dx) = N (invnormcdf x) (fmap (/ (normpdf (invnormcdf x))) dx)
-
--- example1 ::  Map String Double
-example1 =  (prog (nagata 5 "x"))
-  where prog x = x * (x + 1) * (x + x)
-
-example2 :: Map String Double
-example2 = tangent (prog (nagata 4 "x1") (nagata 7 "x2"))
-  where prog x1 x2 = x1 * x2 + sin x2
