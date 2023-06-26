@@ -47,5 +47,6 @@ library
                         Documentation.Background,
                         Documentation.Forward,
                         Documentation.Reverse,
+                        Example.ForwardAD,
                         Example.ReverseAD
   default-language:   Haskell2010
