@@ -104,7 +104,7 @@ symbolicDeriv'' x = eval gen
     gen y = D (Var y) (ddx y)
     ddx y = if x == y then one else zero
 
-{-- Forward AD
+{-- | Forward AD
 --}
 
 -- | AD algorithms are those that compute 1) both the value and derivative of an expression, 2) at a point.
@@ -125,7 +125,7 @@ forwardAD' var x = eval gen
 run_forwardAD :: Dual Int
 run_forwardAD = forwardAD' (\X -> 5) X example_1
 
-{-- Symbolic AD as Forward AD
+{-- | Symbolic AD from Forward AD
 --}
 
 -- | Symbolic evaluates into the symbolic semiring Expr v,
