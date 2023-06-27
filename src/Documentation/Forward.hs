@@ -1,6 +1,8 @@
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE TypeOperators #-}
+{-# OPTIONS_GHC -Wno-unrecognised-pragmas #-}
+{-# HLINT ignore "Use camelCase" #-}
 module Documentation.Forward where
 
 import Documentation.AbstractAD
@@ -79,12 +81,12 @@ forwardAD_Sparse_example =
   in  (result, Data.Map.lookup X tangents)
 
 
-
-
-{-- | A Kronecker Homomorphism maps from one type of Module (Vector) to another.
+{-- | A Kronecker Homomorphism maps from one representation of Module E, i.e. tangent, to another.
          hom :: (Kronecker V D E1, Kronecker V D E2) => E1 -> E2
       A Kronecker Isomorphism (hom, hom_inv) is a pair of these Homomorphisms that invert each other.
 
-      We use "Dense V D" as a baseline for E. So when defining a new type of tangent E', we also want to
-      define a Kronecker isomorphism, rep(resentation) :: Dense V D -> E' and abs(traction) :: E' -> Dense V D.
+      We treat Dense V D as a baseline for E.
+      For each new tangent E', we also want to define a Kronecker isomorphism:
+         rep(resentation) :: Dense V D -> E'
+         abs(traction)    :: E' -> Dense V D
 --}

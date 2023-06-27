@@ -12,18 +12,21 @@ import Prelude hiding (lookup, abs, (<>), Monoid)
 import Data.Map
 
 {-- | ACCUMULATING MULTIPLICATION
-   Rather than working directly in E as vectors with scalar multiplication:
+   Rather than working directly with tangent E as vectors with scalar multiplication:
      Monoid   (E, <>)
      Semiring (D, ⊕, ⊗)
      Module   (E, •, D)
-   We now work with the type Hom D E as homomorphisms from scalars D to vectors E
+   We now work with the tangent Hom D E as homomorphisms from scalars D to vectors E
      Monoid   (D -> E, <>)
      Semiring (D, ⊕, ⊗)
      Module   (D -> E, •, D)
     such that Hom D E is specifically functions (f :: D -> E) with the *multiplicative homogeneity* property:
       f (d1 ⊗ d2) = d1 • f d2
 
-   Intuitively, Hom D E augments a Vector E with an _accumulator_ for a Scalar Multiplier D.
+   Intuitively, Hom D E augments a Vector E with an accumulator for a Scalar Multiplier D.
+   In reverse-mode, this lets us compute the partial derivatives wrt each variable, by:
+    1. Taking an adjoint D, representing the rate-of-change of the top-level function wrt the local one
+    2. Using this to scale the rate-of-change of the local function wrt each of its variables
 --}
 newtype Hom d e = Hom (d -> e)
 
@@ -32,23 +35,24 @@ rep_h e = Hom (\d -> d • e)
 abs_h :: Module d e => Hom d e -> e
 abs_h (Hom f) = f one
 
--- | Vector addition is still O(n)
+-- | Monoid: Vector addition is still O(n)
 instance Monoid e   => Monoid (Hom d e) where
   mzero          = Hom (const mzero)
   Hom f <> Hom g = Hom (\d -> f d <> g d)
 
--- | Scalar multiplication (•) is O(1) by using semiring multiplication (⊗) instead, accumulating the scalar multiplier in the parameter D in Hom D E
+-- | Module: Scalar multiplication (•) is O(1).
+    -- By using semiring multiplication (⊗) instead and accumulating the scalar multiplier D in Hom D E
 instance {-# OVERLAPPING #-} Module d e => Module d (Hom d e) where
   d • (Hom f)    = Hom (\d' -> f (d ⊗ d'))
 
--- | Instantiating a basis vector for the general type "Hom D E" is O(n):
-      -- 1. We must first instantiate a basis vector of type D-Module E for variable V, generally in O(n).
-      -- 2. And then scalar multiply (•) this by an accumulator D, generally in O(n).
+-- | Kronecker: Instantiating a basis vector for the general type "Hom D E" is O(n):
+    -- 1. We must first instantiate a basis vector of type D-Module E for variable V, generally in O(n).
+    -- 2. And then scalar multiply (•) this by an accumulator D, generally in O(n).
 instance {-# OVERLAPPABLE #-}
          Kronecker v d e     => Kronecker v d (Hom d e) where
   delta x        = Hom (\d  -> d • delta x)
--- | Instantiating a basis vector for the specific type "Hom D (Sparse V D)" is O(1):
---    1. We can simply return the multiplicative accumulator D as the only map entry, in O(1).
+-- | Kronecker: Instantiating a basis vector for the specific type "Hom D (Sparse V D)" is O(1):
+    -- 1. We can simply return the multiplicative accumulator D as the only map entry, in O(1).
 instance (Ord v, Semiring d) => Kronecker v d (Hom d (Sparse v d)) where
   delta x        = Hom (\d -> singleton x d)
 
@@ -145,3 +149,12 @@ instance  (Ord v, Semiring d)
 --}
 reverseAD_Cayley :: (Ord v, Semiring d) => (v -> d) -> Expr v -> d ⋉ Hom d (Cayley (Sparse v d))
 reverseAD_Cayley = abstractAD
+
+reverseAD_Cayley_example :: (Double, Cayley (Sparse X Double))
+reverseAD_Cayley_example =
+  let var ::  X -> Double
+      var x = case x of X -> 5.0;
+                        Y -> 5.0
+      Nagata result (Hom f) = reverseAD_Cayley var $
+        Times (Times (Var Y) (Plus (Var X) One)) (Plus (Var X) (Var X))     -- x * (x + 1) * (x + x)
+  in  (result,  f one)
