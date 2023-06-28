@@ -44,7 +44,7 @@ library
                         math-functions,
                         mtl
   exposed-modules:      Documentation.AbstractAD,
-                        Documentation.Background,
+                        Documentation.Symbolic,
                         Documentation.Forward,
                         Documentation.Reverse,
                         Example.ForwardAD,

@@ -11,17 +11,17 @@ module Documentation.AbstractAD where
 
 import Prelude hiding (Monoid(..), (<>))
 
-{-- | ABSTRACTION 1: Modules E over Semirings D
+{-- | FOUNDATION: Monoids, semirings, and expressions.
 --}
 
 {- | A Monoid (E, <>).
-   For the purposes of dual numbers, (<>) is interpreted additively (⊕) rather than multiplicatively
+   For the purposes of dual numbers, (<>) is interpreted additively (⊕) rather than multiplicatively.
 -}
 class Monoid e where
   mzero :: e
   (<>)  :: e -> e -> e
 
-{- | A Semiring (D, ⊕, ⊗) is two monoids of the same underlying type.
+{- | A Semiring (D, ⊕, ⊗) is two monoids of the same underlying type. These are used to represent scalar numbers.
     1. An additive monoid       (D, ⊕) which is also commutative.
     2. A  multiplicative monoid (D, ⊕).
 -}
@@ -37,6 +37,48 @@ instance {-# OVERLAPPABLE #-} Num a => Semiring a where
   one   = 1
   (⊕)  = (+)
   (⊗)  = (*)
+
+{- | Expr v is a symbolic expression that captures polynomials over variables 'v'.
+-}
+data Expr v = Var v | Zero | One | Plus (Expr v) (Expr v) | Times (Expr v) (Expr v)
+  deriving (Eq)
+instance Show a => Show (Expr a) where
+  showsPrec p (Var x)  =  showsPrec p x
+  showsPrec p Zero     =  shows 0
+  showsPrec p One      =  shows 1
+  showsPrec p (Plus e1 e2)   =  showParen (p >= 6) $ (showsPrec 6 e1) . (" + " ++) . (showsPrec 6 e2)
+  showsPrec p (Times e1 e2)  =  showParen (p >= 7) $ (showsPrec 7 e1) . (" * " ++) . (showsPrec 7 e2)
+
+example :: Expr XY
+example = Times (Var X) (Plus (Var X) One)    -- x * (x + 1)
+
+data XY = X | Y deriving (Eq, Ord, Show)
+
+instance Monoid (Expr v) where
+  mzero = Zero
+  (<>)  = Plus
+instance Semiring (Expr v) where
+  zero  = Zero
+  one   = One
+  (⊕)   = Plus
+  (⊗)   = Times
+
+{- | The function 'eval var :: Expr v -> d' is a (semiring) homomorphism for any choice of variable mapping
+     'var :: v -> d', interpreting a symbolic expression to a semiring d.
+-}
+eval :: Semiring d => (v -> d) -> Expr v -> d
+eval var (Var x)       = var x
+eval var Zero          = zero
+eval var One           = one
+eval var (Plus e1 e2)  = eval var e1 ⊕ eval var e2
+eval var (Times e1 e2) = eval var e1 ⊗ eval var e2
+
+-- | Evaluate 'x * (x + 1)' for x = 5 to the Int semiring
+eval_example :: Int
+eval_example = eval (\X -> 5) example
+
+{-- | ABSTRACTION 1: Modules E over Semirings D
+--}
 
 {- | A D-Module (E, <>) is:
      1. A Monoid   (E, <>)   of Vectors, where <> is additive and commutative.
@@ -60,7 +102,10 @@ class (Semiring d, Monoid e) => Module d e | e -> d where -- Knowing the Vector 
 -}
 
 {-- | ABSTRACTION 2: Nagata Numbers D ⋉ E
-   This generalises over dual numbers Dual D by letting the primal and tangent have different types.
+
+   AD algorithms are those that compute Dual numbers (D, D) that contain both the value and  partial derivative (tangent)
+   of an expression at a point.
+   The type Nagata D E generalises over dual numbers (D, D) by letting the primal and tangent have different types.
    Intuitively:
     D is a scalar representing the result of evaluation
     E is a vector representing the gradient
@@ -85,25 +130,8 @@ class Module d e => Kronecker v d e where
 
 {-- | ABSTRACT AD:
 --}
-
--- | 'Expr v' is a symbolic expression that captures polynomials over variables 'v'
-data Expr v = Var v | Zero | One | Plus (Expr v) (Expr v) | Times (Expr v) (Expr v)
-
--- | The type 'X' for a single variable
-data X = X | Y deriving (Eq, Ord, Show)
-
-eval :: Semiring d => (v -> d) -> Expr v -> d
-eval var (Var x)       = var x
-eval var Zero          = zero
-eval var One           = one
-eval var (Plus e1 e2)  = eval var e1 ⊕ eval var e2
-eval var (Times e1 e2) = eval var e1 ⊗ eval var e2
-
 abstractAD :: Kronecker v d e => (v -> d) -> Expr v -> d ⋉ e
 abstractAD var = eval gen where
   -- | gen (by using var) turns each variable into a Nagata number
   gen x = Nagata (var x) (delta x)
 
--- | x * (x + 1)
-example_1 :: Expr X
-example_1 = Times (Var X) (Plus (Var X) One)

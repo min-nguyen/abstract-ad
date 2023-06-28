@@ -41,7 +41,7 @@ forwardAD_Dense = abstractAD
 
 forwardAD_Dense_example :: (Double, Double)
 forwardAD_Dense_example =
-  let var ::  X -> Double
+  let var :: XY -> Double
       var =  (\X -> 2.0)
       -- Double ⋉ Dense X Double
       Nagata result (Dense tangents) = forwardAD_Dense var (Times (Var X) (Plus (Var X) One))     -- x * (x + 1))
@@ -74,7 +74,7 @@ forwardAD_Sparse = abstractAD
 
 forwardAD_Sparse_example :: (Double, Maybe Double)
 forwardAD_Sparse_example =
-  let var ::  X -> Double
+  let var ::  XY -> Double
       var =  (\X -> 2.0)
       -- Double ⋉ Sparse X Double
       Nagata result tangents = forwardAD_Sparse var (Times (Var X) (Plus (Var X) One))     -- x * (x + 1))

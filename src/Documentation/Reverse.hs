@@ -66,9 +66,9 @@ instance (Ord v, Semiring d) => Kronecker v d (Hom d (Sparse v d)) where
 reverseAD_Sparse :: (Ord v, Semiring d) => (v -> d) -> Expr v -> d ⋉ Hom d (Sparse v d)
 reverseAD_Sparse = abstractAD
 
-reverseAD_Sparse_example :: (Double, Sparse X Double)
+reverseAD_Sparse_example :: (Double, Sparse XY Double)
 reverseAD_Sparse_example =
-  let var ::  X -> Double
+  let var ::  XY -> Double
       var x = case x of X -> 5.0;
                         Y -> 5.0
       Nagata result (Hom f) = reverseAD_Sparse var $
@@ -150,9 +150,9 @@ instance  (Ord v, Semiring d)
 reverseAD_Cayley :: (Ord v, Semiring d) => (v -> d) -> Expr v -> d ⋉ Hom d (Cayley (Sparse v d))
 reverseAD_Cayley = abstractAD
 
-reverseAD_Cayley_example :: (Double, Cayley (Sparse X Double))
+reverseAD_Cayley_example :: (Double, Cayley (Sparse XY Double))
 reverseAD_Cayley_example =
-  let var ::  X -> Double
+  let var ::  XY -> Double
       var x = case x of X -> 5.0;
                         Y -> 5.0
       Nagata result (Hom f) = reverseAD_Cayley var $
