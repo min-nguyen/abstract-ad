@@ -95,5 +95,5 @@ forwardAD_Dense2ndOrd :: Eq v => Semiring d => (v -> d) -> Expr v -> v ⋉⋉ d
 forwardAD_Dense2ndOrd var = eval gen where
   gen x = Nagata2 (var x) (delta x)
 
-forwardAD_Dense_Compact2nd_example :: XY ⋉⋉ Double
-forwardAD_Dense_Compact2nd_example = forwardAD_Dense2ndOrd (\X -> 5 :: Double) example
+forwardAD_Dense2ndOrd_example :: XY ⋉⋉ Double
+forwardAD_Dense2ndOrd_example = forwardAD_Dense2ndOrd (\X -> 5 :: Double) example
