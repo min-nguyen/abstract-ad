@@ -9,16 +9,21 @@ import Documentation.AbstractAD
 import Prelude hiding (Monoid)
 import Data.Map
 
-{-- | Dense V D represents a Gradient Vector as a function mapping variables V to their partial derivatives (scalars) D.
+{-- | DENSE V D represents a Gradient Vector as a function mapping variables V to their partial derivatives (scalars) D.
 --}
 newtype Dense v d = Dense { runDense :: v -> d }
 
 -- | Gradient Vectors are Monoids that are additive
 instance Semiring d => Monoid (Dense v d) where
-  mzero                = Dense (\v -> zero)
-  Dense f1 <> Dense f2 = Dense (\v -> f1 v ⊕ f2 v)
--- | Gradient Vectors are Modules over the type of their elements
--- Intuitively, vectors can be scaled by values that match the same type as their vector elements
+  mzero              = Dense (\v -> zero)
+  Dense f <> Dense g = Dense (\v -> f v ⊕ g v)
+-- | Gradient Vectors are Semirings under a specific variable V
+instance Semiring d => Semiring (Dense v d) where
+  zero = Dense $ \ _ -> zero
+  one  = Dense $ \ _ -> one
+  Dense f ⊕ Dense g = Dense $ \ v ->  f v ⊕ g v
+  Dense f ⊗ Dense g = Dense $ \ v ->  f v ⊗ g v
+-- | Gradient Vectors are Modules over the type of their elements i.e. vectors can be scaled by values of their vector elements
 instance Semiring d => Module d (Dense v d) where
   a • Dense f = Dense (\v -> a ⊗ f v)
 -- | Gradient Vectors have a Kronecker-delta function
@@ -47,7 +52,7 @@ forwardAD_Dense_example =
       Nagata result (Dense tangents) = forwardAD_Dense var (Times (Var X) (Plus (Var X) One))     -- x * (x + 1))
   in  (result, tangents X)
 
-{-- | Sparse V D represents a Gradient Vector as a Map from variables V to their partial derivatives (scalars) D.
+{-- | SPARSE V D represents a Gradient Vector as a Map from variables V to their partial derivatives (scalars) D.
        (This exploits that if a sub-expression e does not contain variable v, then its partial derivatives is zero.
         In particular, if that sub-expression is itself a variable v' s.t v' =/= v, then its partial derivative is zero.
         We use Sparse Maps that avoid explicitly representing these zeros.)
