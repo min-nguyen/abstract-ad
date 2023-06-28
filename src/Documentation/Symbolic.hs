@@ -33,12 +33,12 @@ import Documentation.Forward hiding (forwardAD_Dense)
 {-- |  Dense Symbolic differentiation evaluates an Expr V into dual (Expr V, V -> Expr V) of symbolic semiring Expr V.
        The tangent (V -> Expr V) returns the symbolic derivative of an expression wrt to a supplied variable V.
 --}
-symbolicDeriv_Dense :: Eq v => Expr v -> Expr v ⋉ (Dense v (Expr v))
-symbolicDeriv_Dense = abstractAD Var
+symbolic_Dense :: Eq v => Expr v -> Expr v ⋉ (Dense v (Expr v))
+symbolic_Dense = abstractAD Var
 
 symbolic_example :: Expr XY ⋉ (Expr XY)
 symbolic_example = Nagata sym_e (sym_de X) where
-  Nagata sym_e (Dense sym_de) = symbolicDeriv_Dense example
+  Nagata sym_e (Dense sym_de) = symbolic_Dense example
 
 {-- |  Dense Forward AD for evaluating Expr V into dual (D, V -> D) is hence definable by composing:
           1) differentation into the "symbolic" semiring (V -> Expr V)
@@ -48,7 +48,7 @@ symbolic_example = Nagata sym_e (sym_de X) where
 --}
 forwardAD_Dense :: (Semiring d, Eq v) => (v -> d) -> Expr v -> d ⋉ (Dense v d)
 forwardAD_Dense var e = Nagata y dy where
-    Nagata sym_e (Dense sym_de) = symbolicDeriv_Dense e -- | compute symbolic expression and symbolic derivative
+    Nagata sym_e (Dense sym_de) = symbolic_Dense e -- | compute symbolic expression and symbolic derivative
     y    = eval var sym_e                               -- | evaluate symbolic expression at a point "var"
     dy   = Dense (\x -> eval var (sym_de x))            -- | evaluate symbolic derivative wrt variable "x" at a point "var"
     {-- Instantiating Dense Forward AD for a single concrete variable x.
