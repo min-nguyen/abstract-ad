@@ -11,7 +11,7 @@ import Data.Map
 
 {-- | Dense V D represents a Gradient Vector as a function mapping variables V to their partial derivatives (scalars) D.
 --}
-newtype Dense v d = Dense (v -> d)
+newtype Dense v d = Dense { runDense :: v -> d }
 
 -- | Gradient Vectors are Monoids that are additive
 instance Semiring d => Monoid (Dense v d) where
