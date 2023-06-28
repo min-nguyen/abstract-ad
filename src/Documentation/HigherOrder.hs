@@ -3,7 +3,7 @@
 {-# LANGUAGE AllowAmbiguousTypes #-}
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE FlexibleInstances #-}
-module Documentation.Extensions where
+module Documentation.HigherOrder where
 
 import Documentation.AbstractAD
 import Documentation.Forward

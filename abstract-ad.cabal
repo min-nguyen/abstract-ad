@@ -47,7 +47,7 @@ library
                         Documentation.Symbolic,
                         Documentation.Forward,
                         Documentation.Reverse,
-                        Documentation.Extensions,
+                        Documentation.HigherOrder,
                         Example.ForwardAD,
                         Example.ReverseAD
   default-language:   Haskell2010
