@@ -39,7 +39,7 @@ import Prelude hiding (Monoid)
         .              /     \
         .            e        dedx         -- 1st order
         .          /   \     /    \
-        .         e  dedx  dedx  dedxdy    -- 2nd order     (note: redundant, duplicate computation of dedx)
+        .         e  dedx  dedx  dedxdy    -- 2nd order     (note: redundant duplicate computation of dedx)
 --}
 forwardAD_NaiveDense2ndOrd :: forall v d. (Eq v, Semiring d) => (v -> d) -> Expr v -> (d ⋉ (Dense v d)) ⋉ (Dense v (d ⋉ (Dense v d)))
 forwardAD_NaiveDense2ndOrd var expr = abstractAD gen expr where
