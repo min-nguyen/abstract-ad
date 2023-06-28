@@ -41,23 +41,23 @@ import Prelude hiding (Monoid)
         .          /   \     /    \
         .         e  dedx  dedx  dedxdy    -- 2nd order
 --}
-forwardDense_Nested2ndOrd :: forall v d e. (Eq v, Kronecker v d e) => (v -> d) -> Expr v -> Dense v (Dense v d)
-forwardDense_Nested2ndOrd var e = Dense $ \x -> Dense $ \y ->
-  let -- Define a generator that instantiates variables in Expr v to first-order, Nagata numbers (d ⋉ Dense v d).
-      gen    :: v -> (d ⋉ Dense v d)
-      gen z  = Nagata (var z) (delta z)
-      -- Providing the generator to "abstractAD" will then instantiate variables in Expr v to second-order Nagata numbers, (d ⋉ Dense v d) ⋉ (d ⋉ Dense v (d ⋉ Dense v d)).
-      de     :: Dense v (d ⋉ (Dense v d))
-      de     = tangent (abstractAD gen e :: (d ⋉ (Dense v d)) ⋉ (Dense v (d ⋉ (Dense v d))))
-      dedx   :: Dense v d
-      dedx   = tangent (runDense de x)
-      dedxdy :: d
-      dedxdy = runDense dedx y
-  in  dedxdy
+forwardAD_NaiveDense2ndOrd :: forall v d. (Eq v, Semiring d) => (v -> d) -> Expr v -> (d ⋉ (Dense v d)) ⋉ (Dense v (d ⋉ (Dense v d)))
+forwardAD_NaiveDense2ndOrd var expr = abstractAD gen expr where
+  -- Define a generator that instantiates V to first-order Nagata numbers (d ⋉ Dense v d).
+  -- Providing this to "abstractAD" will then instantiate V to second-order Nagata numbers (d ⋉ Dense v d) ⋉ (d ⋉ Dense v (d ⋉ Dense v d)).
+  gen    :: v -> (d ⋉ Dense v d)
+  gen z  = Nagata (var z) (delta z)
+
+forwardAD_NaiveDense2ndOrd_example :: XY -> XY -> (Double, Double, Double)
+forwardAD_NaiveDense2ndOrd_example x y =
+  let Nagata (Nagata e _) (Dense ded)   = forwardAD_NaiveDense2ndOrd (\X -> 5 :: Double) example
+      Nagata dedx         (Dense dedxd) = ded x              :: Double ⋉ (Dense XY Double)
+      dedxdy                            = dedxd y            :: Double
+  in  (e, dedx, dedxdy)
 
 {--  | COMPACT SECOND-ORDER NAGATA NUMBERS (⋉⋉)
        We define (⋉⋉) for the compact representation of Second-Order Nagata numbers (D ⋉ (V -> (D ⋉ (V -> D))):
-             Nagata2 e (λx -> (dedx, λy -> dedxdy))
+           Nagata e (λx -> (dedx, λy -> dedxdy))
 
         .                 e                -- 0th order
         .              /     \
@@ -65,18 +65,14 @@ forwardDense_Nested2ndOrd var e = Dense $ \x -> Dense $ \y ->
         .          /         /    \
         .         e        dedx  dedxdy    -- 2nd order
 --}
-data v ⋉⋉ d = Nagata2 d (Dense v (d ⋉ (Dense v d)))
+type v ⋉⋉ d = d ⋉ (Dense v (d ⋉ (Dense v d)))
 
-instance Show d => Show (Dense XY d) where
-  show f = "(\\X -> " ++ show (runDense f X) ++ ")"
-deriving instance Show d => Show (XY ⋉⋉ d)
-
-instance (Semiring d) => Semiring (v ⋉⋉ d) where
-  zero        =  Nagata2 zero mzero
-  one         =  Nagata2 one  mzero
-  Nagata2 f ddf ⊕ Nagata2 g ddg =  Nagata2 (f ⊕ g) (ddf ⊕ ddg)
-  Nagata2 f ddf ⊗ Nagata2 g ddg
-    =  Nagata2 (f ⊗ g)                                            -- Compute result (f * g)
+instance {-# OVERLAPPING #-} (Semiring d) => Semiring (d ⋉ (Dense v (d ⋉ (Dense v d)))) where
+  zero        =  Nagata zero mzero
+  one         =  Nagata one  mzero
+  Nagata f ddf ⊕ Nagata g ddg =  Nagata (f ⊕ g) (ddf ⊕ ddg)
+  Nagata f ddf ⊗ Nagata g ddg
+    =  Nagata (f ⊗ g)                                            -- Compute result (f * g)
           (Dense $ \x ->
               let  Nagata dfdx ddfdx = runDense ddf x             -- Get first-order partial derivative df/dx
                    Nagata dgdx ddgdx = runDense ddg x             -- Get first-order partial derivative dg/dx
@@ -89,11 +85,17 @@ instance (Semiring d) => Semiring (v ⋉⋉ d) where
                           )
           )
 
-{-- |  COMPACT SECOND-ORDER DENSE AD is a variant of Abstract AD for Second-Order Nagata Numbers (⋉⋉)
+{-- |  COMPACT SECOND-ORDER DENSE AD is a variant of Abstract AD for Second-Order Nagata Numbers (⋉⋉),
+          Nagata e (λx -> (dedx, λy -> dedxdy))
 --}
 forwardAD_Dense2ndOrd :: Eq v => Semiring d => (v -> d) -> Expr v -> v ⋉⋉ d
-forwardAD_Dense2ndOrd var = eval gen where
-  gen x = Nagata2 (var x) (delta x)
+forwardAD_Dense2ndOrd var expr = Nagata e dde where
+  gen x = Nagata (var x) (delta x)
+  Nagata e dde = eval gen expr
 
 forwardAD_Dense2ndOrd_example :: XY ⋉⋉ Double
 forwardAD_Dense2ndOrd_example = forwardAD_Dense2ndOrd (\X -> 5 :: Double) example
+
+instance Show d => Show (Dense XY d) where
+  show f = "(\\X -> " ++ show (runDense f X) ++ ")"
+deriving instance {-# OVERLAPPING #-} Show d => Show (XY ⋉⋉ d)
