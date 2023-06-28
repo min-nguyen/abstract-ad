@@ -39,12 +39,12 @@ import Prelude hiding (Monoid)
         .              /     \
         .            e        dedx         -- 1st order
         .          /   \     /    \
-        .         e  dedx  dedx  dedxdy    -- 2nd order
+        .         e  dedx  dedx  dedxdy    -- 2nd order     (note: redundant, duplicate computation of dedx)
 --}
 forwardAD_NaiveDense2ndOrd :: forall v d. (Eq v, Semiring d) => (v -> d) -> Expr v -> (d ⋉ (Dense v d)) ⋉ (Dense v (d ⋉ (Dense v d)))
 forwardAD_NaiveDense2ndOrd var expr = abstractAD gen expr where
-  -- Define a generator that instantiates V to first-order Nagata numbers (d ⋉ Dense v d).
-  -- Providing this to "abstractAD" will then instantiate V to second-order Nagata numbers (d ⋉ Dense v d) ⋉ (d ⋉ Dense v (d ⋉ Dense v d)).
+  -- | The generator instantiates V to first-order Nagata numbers (d ⋉ Dense v d).
+  --   Providing this to abstractAD will instantiate V to second-order Nagata numbers (d ⋉ Dense v d) ⋉ (d ⋉ Dense v (d ⋉ Dense v d)).
   gen    :: v -> (d ⋉ Dense v d)
   gen z  = Nagata (var z) (delta z)
 
