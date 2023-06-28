@@ -25,7 +25,7 @@ import Prelude hiding (Monoid)
           in  eval var dedxdy            -- | Evaluate the symbolic derivative of dedxdy at point "var"
 --}
 
-{-- | NAIVE SECOND-ORDER DENSE FORWARD-MODE AD specialises the Abstract AD to use nested Nagata numbers (D ⋉ (V -> D)) ⋉ (V -> (D ⋉ (V -> D))):
+{-- | NAIVE SECOND-ORDER DENSE FORWARD-MODE AD specialises Abstract AD to use nested Nagata numbers "(D ⋉ (V -> D)) ⋉ (V -> (D ⋉ (V -> D)))"":
            Nagata (e, λx -> dedx) (λx -> (dedx, λy -> dedxdy))
       For a given expression e:
         1. The primals are themselves first-order dual numbers:
@@ -48,15 +48,14 @@ forwardAD_NaiveDense2ndOrd var expr = abstractAD gen expr where
   gen    :: v -> (d ⋉ Dense v d)
   gen z  = Nagata (var z) (delta z)
 
-forwardAD_NaiveDense2ndOrd_example :: XY -> XY -> (Double, Double, Double)
-forwardAD_NaiveDense2ndOrd_example x y =
+forwardAD_NaiveDense2ndOrd_example :: (Double, Double, Double)
+forwardAD_NaiveDense2ndOrd_example =
   let Nagata (Nagata e _) (Dense ded)   = forwardAD_NaiveDense2ndOrd (\X -> 5 :: Double) example
-      Nagata dedx         (Dense dedxd) = ded x              :: Double ⋉ (Dense XY Double)
-      dedxdy                            = dedxd y            :: Double
-  in  (e, dedx, dedxdy)
+      Nagata dedx         (Dense dedxd) = ded X              :: Double ⋉ (Dense XY Double)
+      dedxdx                            = dedxd X            :: Double
+  in  (e, dedx, dedxdx)
 
-{--  | AD-HOC COMPACT SECOND-ORDER DENSE FORWARD-MODE AD (⋉⋉)
-       We define (⋉⋉) for the compact representation of Second-Order Nagata numbers (D ⋉ (V -> (D ⋉ (V -> D))):
+{--  | COMPACT SECOND-ORDER DENSE FORWARD-MODE AD specialises Abstract AD to use Nagata numbers "D ⋉ (V -> (D ⋉ (V -> D))":
            Nagata e (λx -> (dedx, λy -> dedxdy))
 
         .                 e                -- 0th order
@@ -65,9 +64,9 @@ forwardAD_NaiveDense2ndOrd_example x y =
         .          /         /    \
         .         e        dedx  dedxdy    -- 2nd order
 --}
-type v ⋉⋉ d = d ⋉ (Dense v (d ⋉ (Dense v d)))
+type Dense2 v d = d ⋉ (Dense v (d ⋉ (Dense v d)))
 
-instance {-# OVERLAPPING #-} (Semiring d) => Semiring (d ⋉ (Dense v (d ⋉ (Dense v d)))) where
+instance {-# OVERLAPPING #-} (Semiring d) => Semiring (Dense2 v d) where
   zero        =  Nagata zero mzero
   one         =  Nagata one  mzero
   Nagata f ddf ⊕ Nagata g ddg = Nagata (f ⊕ g) (ddf ⊕ ddg)
@@ -85,17 +84,45 @@ instance {-# OVERLAPPING #-} (Semiring d) => Semiring (d ⋉ (Dense v (d ⋉ (De
                           )
           )
 
-{-- |  COMPACT SECOND-ORDER DENSE AD is a variant of Abstract AD for Second-Order Nagata Numbers (⋉⋉),
-          Nagata e (λx -> (dedx, λy -> dedxdy))
---}
-forwardAD_Dense2ndOrd :: Eq v => Semiring d => (v -> d) -> Expr v -> v ⋉⋉ d
-forwardAD_Dense2ndOrd var expr = Nagata e dde where
+forwardAD_Dense2ndOrd :: Eq v => Semiring d => (v -> d) -> Expr v -> Dense2 v d
+forwardAD_Dense2ndOrd var expr = eval gen expr where
   gen x = Nagata (var x) (delta x)
-  Nagata e dde = eval gen expr
 
-forwardAD_Dense2ndOrd_example :: XY ⋉⋉ Double
-forwardAD_Dense2ndOrd_example = forwardAD_Dense2ndOrd (\X -> 5 :: Double) example
+forwardAD_Dense2ndOrd_example :: (Double, Double, Double)
+forwardAD_Dense2ndOrd_example =
+  let Nagata e    (Dense ded)   = forwardAD_Dense2ndOrd (\X -> 5) example :: Double ⋉ (Dense XY (Double ⋉ Dense XY Double))
+      Nagata dedx (Dense dedxd) = ded X                                   :: Double ⋉ (Dense XY Double)
+      dedxdx                    = dedxd X                                 :: Double
+  in  (e, dedx, dedxdx)
 
 instance Show d => Show (Dense XY d) where
   show f = "(\\X -> " ++ show (runDense f X) ++ ")"
-deriving instance {-# OVERLAPPING #-} Show d => Show (XY ⋉⋉ d)
+deriving instance {-# OVERLAPPING #-} Show d => Show (Dense2 XY d)
+
+
+{-- |  GENERIC HIGHER-ORDER DENSE FORWARD-MODE AD specialises Abstract AD to work with "NagataStream D (V -> NagataStream V D)"
+          Nagata e (λx -> (dedx, λy -> dedxdy))
+       The tangent is a stream:
+        - the head is the current partial derivative
+        - the tail is a function to a stream of higher-order partial derivatives.
+--}
+data NagataStream v d = d :< Dense v (NagataStream v d)
+deriving instance Show d => Show (NagataStream XY d)
+
+instance Semiring d => Semiring (NagataStream v d) where
+  zero  = zero :< zero
+  one   = one :< zero
+  (f :< dfs) ⊕ (g :< dgs)
+    = (f ⊕ g)  :< (dfs ⊕ dgs)
+  (f :< dfs) ⊗ (g :< dgs)
+    = (f ⊗ g) :< Dense (\x ->
+      let dfdx = runDense dfs x
+          dgdx = runDense dgs x
+      in ((dfdx ⊗ (g :< dgs)) ⊕ ((f :< dfs) ⊗ dgdx)))
+
+forwardAD_DenseHOrd :: (Eq v, Semiring d) => (v -> d) -> Expr v -> NagataStream v d
+forwardAD_DenseHOrd var = eval gen where
+  gen y = var y :< delta y
+
+forwardAD_DenseHOrd_example :: NagataStream XY Int
+forwardAD_DenseHOrd_example = forwardAD_DenseHOrd (\X -> 5) example
