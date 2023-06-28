@@ -40,8 +40,9 @@ instance {-# OVERLAPPABLE #-} Num a => Semiring a where
 
 {- | Expr v is a symbolic expression that captures polynomials over variables 'v'.
 -}
-data Expr v = Var v | Zero | One | Plus (Expr v) (Expr v) | Times (Expr v) (Expr v)
-  deriving (Eq)
+data Expr v = Var v | Zero | One | Plus (Expr v) (Expr v) | Times (Expr v) (Expr v) deriving (Eq)
+data XY = X | Y deriving (Eq, Ord, Show)
+
 instance Show a => Show (Expr a) where
   showsPrec p (Var x)  =  showsPrec p x
   showsPrec p Zero     =  shows 0
@@ -52,11 +53,10 @@ instance Show a => Show (Expr a) where
 example :: Expr XY
 example = Times (Var X) (Plus (Var X) One)    -- x * (x + 1)
 
-data XY = X | Y deriving (Eq, Ord, Show)
-
 instance Monoid (Expr v) where
   mzero = Zero
   (<>)  = Plus
+
 instance Semiring (Expr v) where
   zero  = Zero
   one   = One
@@ -110,7 +110,7 @@ class (Semiring d, Monoid e) => Module d e | e -> d where -- Knowing the Vector 
     D is a scalar representing the result of evaluation
     E is a vector representing the gradient
 --}
-data d ⋉ e = Nagata d e deriving (Functor, Show)
+data d ⋉ e = Nagata { primal :: d, tangent :: e } deriving (Functor, Show)
 
 {- |  Every D-Module E admits a *Semiring* (D ⋉ E, ⊕, ⊗) of Nagata numbers
 -}
@@ -132,6 +132,5 @@ class Module d e => Kronecker v d e where
 --}
 abstractAD :: Kronecker v d e => (v -> d) -> Expr v -> d ⋉ e
 abstractAD var = eval gen where
-  -- | gen (by using var) turns each variable into a Nagata number
-  gen x = Nagata (var x) (delta x)
+  gen x = Nagata (var x) (delta x) -- | turn each variable V into a Nagata number D ⋉ E
 
