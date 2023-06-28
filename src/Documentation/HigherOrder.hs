@@ -25,7 +25,7 @@ import Prelude hiding (Monoid)
           in  eval var dedxdy            -- | Evaluate the symbolic derivative of dedxdy at point "var"
 --}
 
-{-- | SECOND-ORDER DENSE FORWARD-MODE AD specialises the Abstract AD to use nested Nagata numbers (D ⋉ (V -> D)) ⋉ (V -> (D ⋉ (V -> D))):
+{-- | NAIVE SECOND-ORDER DENSE FORWARD-MODE AD specialises the Abstract AD to use nested Nagata numbers (D ⋉ (V -> D)) ⋉ (V -> (D ⋉ (V -> D))):
            Nagata (e, λx -> dedx) (λx -> (dedx, λy -> dedxdy))
       For a given expression e:
         1. The primals are themselves first-order dual numbers:
@@ -55,7 +55,7 @@ forwardAD_NaiveDense2ndOrd_example x y =
       dedxdy                            = dedxd y            :: Double
   in  (e, dedx, dedxdy)
 
-{--  | COMPACT SECOND-ORDER NAGATA NUMBERS (⋉⋉)
+{--  | AD-HOC COMPACT SECOND-ORDER DENSE FORWARD-MODE AD (⋉⋉)
        We define (⋉⋉) for the compact representation of Second-Order Nagata numbers (D ⋉ (V -> (D ⋉ (V -> D))):
            Nagata e (λx -> (dedx, λy -> dedxdy))
 
@@ -70,7 +70,7 @@ type v ⋉⋉ d = d ⋉ (Dense v (d ⋉ (Dense v d)))
 instance {-# OVERLAPPING #-} (Semiring d) => Semiring (d ⋉ (Dense v (d ⋉ (Dense v d)))) where
   zero        =  Nagata zero mzero
   one         =  Nagata one  mzero
-  Nagata f ddf ⊕ Nagata g ddg =  Nagata (f ⊕ g) (ddf ⊕ ddg)
+  Nagata f ddf ⊕ Nagata g ddg = Nagata (f ⊕ g) (ddf ⊕ ddg)
   Nagata f ddf ⊗ Nagata g ddg
     =  Nagata (f ⊗ g)                                            -- Compute result (f * g)
           (Dense $ \x ->

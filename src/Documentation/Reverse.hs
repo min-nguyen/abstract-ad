@@ -24,7 +24,7 @@ import Data.Map
       f (d1 ⊗ d2) = d1 • f d2
 
    Intuitively, Hom D E augments a Vector E with an accumulator for a Scalar Multiplier D.
-   In reverse-mode, this lets us compute the partial derivatives wrt each variable, by:
+   This is key to Reverse-Mode AD, letting us compute the partial derivatives wrt each variable by:
     1. Taking an adjoint D, representing the rate-of-change of the top-level function wrt the local one
     2. Using this to scale the rate-of-change of the local function wrt each of its variables
 --}
