@@ -3,6 +3,7 @@
 {-# LANGUAGE AllowAmbiguousTypes #-}
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE StandaloneDeriving #-}
 module Documentation.HigherOrder where
 
 import Documentation.AbstractAD
@@ -40,8 +41,8 @@ import Prelude hiding (Monoid)
         .          /   \     /    \
         .         e  dedx  dedx  dedxdy    -- 2nd order
 --}
-forwardAD_Dense_2nd :: forall v d e. (Eq v, Kronecker v d e) => (v -> d) -> Expr v -> Dense v (Dense v d)
-forwardAD_Dense_2nd var e = Dense $ \x -> Dense $ \y ->
+forwardDense_Nested2ndOrd :: forall v d e. (Eq v, Kronecker v d e) => (v -> d) -> Expr v -> Dense v (Dense v d)
+forwardDense_Nested2ndOrd var e = Dense $ \x -> Dense $ \y ->
   let -- Define a generator that instantiates variables in Expr v to first-order, Nagata numbers (d ⋉ Dense v d).
       gen    :: v -> (d ⋉ Dense v d)
       gen z  = Nagata (var z) (delta z)
@@ -66,6 +67,10 @@ forwardAD_Dense_2nd var e = Dense $ \x -> Dense $ \y ->
 --}
 data v ⋉⋉ d = Nagata2 d (Dense v (d ⋉ (Dense v d)))
 
+instance Show d => Show (Dense XY d) where
+  show f = "(\\X -> " ++ show (runDense f X) ++ ")"
+deriving instance Show d => Show (XY ⋉⋉ d)
+
 instance (Semiring d) => Semiring (v ⋉⋉ d) where
   zero        =  Nagata2 zero mzero
   one         =  Nagata2 one  mzero
@@ -86,6 +91,9 @@ instance (Semiring d) => Semiring (v ⋉⋉ d) where
 
 {-- |  COMPACT SECOND-ORDER DENSE AD is a variant of Abstract AD for Second-Order Nagata Numbers (⋉⋉)
 --}
-forwardAD_Dense_Compact2nd :: Eq v => Semiring d => (v -> d) -> Expr v -> v ⋉⋉ d
-forwardAD_Dense_Compact2nd var = eval gen where
+forwardAD_Dense2ndOrd :: Eq v => Semiring d => (v -> d) -> Expr v -> v ⋉⋉ d
+forwardAD_Dense2ndOrd var = eval gen where
   gen x = Nagata2 (var x) (delta x)
+
+forwardAD_Dense_Compact2nd_example :: XY ⋉⋉ Double
+forwardAD_Dense_Compact2nd_example = forwardAD_Dense2ndOrd (\X -> 5 :: Double) example
