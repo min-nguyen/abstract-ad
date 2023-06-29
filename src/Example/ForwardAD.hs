@@ -27,8 +27,8 @@ instance (Ord v, Ord d, Num d) => Num (Nagata v d) where
   N x dx - N y dy = N (x - y) (unionWith (+) dx (fmap negate dy))
   N x dx * N y dy = N (x * y) (unionWith (+) (fmap (y *) dx) (fmap (x *) dy))
   negate (N x dx) = N (negate x) (fmap negate dx)
-  abs (N x dx) = N (abs x) (if x >= 0 then dx else fmap negate dx)
-  signum = error "undefined"
+  abs (N x dx)    = N (abs x) (if x >= 0 then dx else fmap negate dx)
+  signum          = error "undefined"
 
 instance (Ord v, Ord d, Fractional d) => Fractional (Nagata v d) where
   fromRational r  = N (fromRational r) empty
@@ -36,15 +36,23 @@ instance (Ord v, Ord d, Fractional d) => Fractional (Nagata v d) where
   N x dx / N y dy = N (x / y) (let z = y * y in unionWith (+) (fmap ((y / z) *) dx) (fmap ((-x / z) *) dy))
 
 instance (Ord v, Ord d, Floating d) => Floating (Nagata v d) where
-   pi = N pi empty
-   exp (N x dx) = N (exp x) (fmap ((exp x) *) dx)
-   log (N x dx) = N (log x) (fmap ((recip x) *) dx)
-   sqrt (N x dx) = N (sqrt x) (fmap ((recip (2 * sqrt x)) *) dx)
-   N x dx ** N y dy  = error "undefined"
-   logBase x y = error "undefined"
-   sin (N x dx) = N (sin x) (fmap ((cos x) *) dx)
-   cos (N x dx) = N (cos x) (fmap ((negate $ sin x) *) dx)
-   tan (N x dx) = N (tan x) (fmap ((recip $ cos x ** 2) *) dx)
+  pi = N pi empty
+  exp (N x dx) = N (exp x) (fmap ((exp x) *) dx)
+  log (N x dx) = N (log x) (fmap ((recip x) *) dx)
+  sqrt (N x dx) = N (sqrt x) (fmap ((recip (2 * sqrt x)) *) dx)
+  N x dx ** N y dy  = error "undefined"
+  logBase x y       = error "undefined"
+  sin (N x dx) = N (sin x) (fmap ((cos x) *) dx)
+  cos (N x dx) = N (cos x) (fmap ((negate $ sin x) *) dx)
+  tan (N x dx) = N (tan x) (fmap ((recip $ cos x ** 2) *) dx)
+  asin  = error "undefined"
+  acos  = error "undefined"
+  atan  = error "undefined"
+  sinh  = error "undefined"
+  cosh  = error "undefined"
+  asinh = error "undefined"
+  acosh = error "undefined"
+  atanh = error "undefined"
 
 example1 :: Map String Double
 example1 = runForward (prog (nagata 5 "x"))
