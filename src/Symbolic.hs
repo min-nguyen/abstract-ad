@@ -7,10 +7,10 @@
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
 
-module Documentation.Symbolic where
+module Symbolic where
 
-import Documentation.AbstractAD
-import Documentation.Forward hiding (forwardAD_Dense)
+import AbstractAD
+import Forward hiding (forwardAD_Dense)
 
 {-- Automatic Differentiation computes the value and derivative of an expression *at a point*, producing numeric values.
     Symbolic differentation computes the value and derivative as symbolic mathematical expressions.

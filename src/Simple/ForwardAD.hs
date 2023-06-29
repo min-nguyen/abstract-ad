@@ -1,4 +1,4 @@
-module Example.ForwardAD where
+module Simple.ForwardAD where
 
 {- | This file defines a simple forward-mode version of AD.
 -}

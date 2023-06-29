@@ -4,10 +4,10 @@
 {-# LANGUAGE UndecidableInstances #-}
 {-# OPTIONS_GHC -Wno-unrecognised-pragmas #-}
 {-# HLINT ignore "Use camelCase" #-}
-module Documentation.Reverse where
+module Reverse where
 
-import Documentation.AbstractAD
-import Documentation.Forward
+import AbstractAD
+import Forward
 import Prelude hiding (lookup, abs, (<>), Monoid)
 import Data.Map
 

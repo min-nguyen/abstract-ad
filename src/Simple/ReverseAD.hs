@@ -1,4 +1,4 @@
-module Example.ReverseAD where
+module Simple.ReverseAD where
 
 {- | This file defines a simple reverse-mode version of AD.
 -}

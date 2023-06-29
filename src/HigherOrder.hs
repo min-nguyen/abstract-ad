@@ -7,11 +7,11 @@
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE TypeApplications #-}
 {-# LANGUAGE UndecidableInstances #-}
-module Documentation.HigherOrder where
+module HigherOrder where
 
-import Documentation.AbstractAD
-import Documentation.Forward
-import Documentation.Symbolic hiding (forwardAD_Dense)
+import AbstractAD
+import Forward
+import Symbolic hiding (forwardAD_Dense)
 import Prelude hiding (Monoid)
 
 {-- | SECOND-ORDER DERIVATIVES can be naively computed by applying symbolic differentiation twice, producing

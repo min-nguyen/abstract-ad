@@ -43,11 +43,11 @@ library
                         erf,
                         math-functions,
                         mtl
-  exposed-modules:      Documentation.AbstractAD,
-                        Documentation.Symbolic,
-                        Documentation.Forward,
-                        Documentation.Reverse,
-                        Documentation.HigherOrder,
-                        Example.ForwardAD,
-                        Example.ReverseAD
+  exposed-modules:      AbstractAD,
+                        Symbolic,
+                        Forward,
+                        Reverse,
+                        HigherOrder,
+                        Simple.ForwardAD,
+                        Simple.ReverseAD
   default-language:   Haskell2010

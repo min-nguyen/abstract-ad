@@ -3,9 +3,9 @@
 {-# LANGUAGE TypeOperators #-}
 {-# OPTIONS_GHC -Wno-unrecognised-pragmas #-}
 {-# HLINT ignore "Use camelCase" #-}
-module Documentation.Forward where
+module Forward where
 
-import Documentation.AbstractAD
+import AbstractAD
 import Prelude hiding (Monoid)
 import Data.Map
 
