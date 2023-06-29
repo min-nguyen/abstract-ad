@@ -3,7 +3,7 @@
 {-# LANGUAGE DeriveFunctor #-}
 {-# LANGUAGE OverlappingInstances #-}
 
-module Original.Background where
+module Background where
 
 -- Symbolic Expressions
 

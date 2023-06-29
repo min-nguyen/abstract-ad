@@ -3,9 +3,9 @@
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE UndecidableInstances #-}
 
-module Original.AbstractAD where
+module AbstractAD where
 
-import Original.Background
+import Background
 
 -- Modules over Semirings
 

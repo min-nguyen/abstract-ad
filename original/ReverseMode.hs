@@ -5,11 +5,11 @@
 {-# LANGUAGE OverlappingInstances #-}
 {-# LANGUAGE TypeOperators #-}
 
-module Original.ReverseMode where
+module ReverseMode where
 
-import Original.Background
-import Original.AbstractAD
-import Original.ForwardMode
+import Background
+import AbstractAD
+import ForwardMode
 
 import Data.Map
 import Prelude hiding (abs)
