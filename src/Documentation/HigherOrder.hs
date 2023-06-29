@@ -4,6 +4,9 @@
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE StandaloneDeriving #-}
+{-# LANGUAGE MultiParamTypeClasses #-}
+{-# LANGUAGE TypeApplications #-}
+{-# LANGUAGE UndecidableInstances #-}
 module Documentation.HigherOrder where
 
 import Documentation.AbstractAD
@@ -19,10 +22,10 @@ import Prelude hiding (Monoid)
         derive2nd :: (Eq v, Semiring d) => (v -> d) -> Expr v -> Dense v (Dense v d)
         derive2nd var e = Dense $ λx -> Dense $ λy ->
           let Nagata _ (Dense sym_de)   = symbolic_Dense e
-              dedx   = sym_de x          -- | Differentiate e wrt x
+              sym_dedx   = sym_de x          -- | Differentiate e wrt x
               Nagata _ (Dense sym_dedx) = symbolic_Dense dedx
-              dedxdy = sym_dedx y        -- | Differentiate e wrt x wrt y
-          in  eval var dedxdy            -- | Evaluate the symbolic derivative of dedxdy at point "var"
+              sym_dedxdy = sym_dedx y        -- | Differentiate e wrt x wrt y
+          in  eval var sym_dedxdy            -- | Evaluate the symbolic derivative of dedxdy at point "var"
 --}
 
 {-- | NAIVE SECOND-ORDER DENSE FORWARD-MODE AD specialises Abstract AD to use nested Nagata numbers "(D ⋉ (V -> D)) ⋉ (V -> (D ⋉ (V -> D)))"":
@@ -41,16 +44,16 @@ import Prelude hiding (Monoid)
         .          /   \     /    \
         .         e  dedx  dedx  dedxdy    -- 2nd order     (note: redundant duplicate computation of dedx)
 --}
-forwardAD_NaiveDense2ndOrd :: forall v d. (Eq v, Semiring d) => (v -> d) -> Expr v -> (d ⋉ (Dense v d)) ⋉ (Dense v (d ⋉ (Dense v d)))
-forwardAD_NaiveDense2ndOrd var expr = abstractAD gen expr where
+forwardAD_NaiveDense2 :: forall v d. (Eq v, Semiring d) => (v -> d) -> Expr v -> (d ⋉ (Dense v d)) ⋉ (Dense v (d ⋉ (Dense v d)))
+forwardAD_NaiveDense2 var expr = abstractAD gen expr where
   -- | The generator instantiates V to first-order Nagata numbers (d ⋉ Dense v d).
   --   Providing this to abstractAD will instantiate V to second-order Nagata numbers (d ⋉ Dense v d) ⋉ (d ⋉ Dense v (d ⋉ Dense v d)).
   gen    :: v -> (d ⋉ Dense v d)
   gen z  = Nagata (var z) (delta z)
 
-forwardAD_NaiveDense2ndOrd_example :: (Double, Double, Double)
-forwardAD_NaiveDense2ndOrd_example =
-  let Nagata (Nagata e _) (Dense ded)   = forwardAD_NaiveDense2ndOrd (\X -> 5 :: Double) example
+forwardAD_NaiveDense2_example :: (Double, Double, Double)
+forwardAD_NaiveDense2_example =
+  let Nagata (Nagata e _) (Dense ded)   = forwardAD_NaiveDense2 (\X -> 5 :: Double) example
       Nagata dedx         (Dense dedxd) = ded X              :: Double ⋉ (Dense XY Double)
       dedxdx                            = dedxd X            :: Double
   in  (e, dedx, dedxdx)
@@ -69,30 +72,34 @@ type Dense2 v d = d ⋉ (Dense v (d ⋉ (Dense v d)))
 instance {-# OVERLAPPING #-} (Semiring d) => Semiring (Dense2 v d) where
   zero        =  Nagata zero mzero
   one         =  Nagata one  mzero
-  Nagata f ddf ⊕ Nagata g ddg = Nagata (f ⊕ g) (ddf ⊕ ddg)
-  Nagata f ddf ⊗ Nagata g ddg
+  Nagata f dfd ⊕ Nagata g dgd = Nagata (f ⊕ g) (dfd ⊕ dgd)
+  Nagata f dfd ⊗ Nagata g dgd
     =  Nagata (f ⊗ g)                                            -- Compute result (f * g)
           (Dense $ \x ->
-              let  Nagata dfdx ddfdx = runDense ddf x             -- Get first-order partial derivative df/dx
-                   Nagata dgdx ddgdx = runDense ddg x             -- Get first-order partial derivative dg/dx
+              let  Nagata dfdx dfdxd = runDense dfd x             -- Get first-order partial derivative df/dx
+                   Nagata dgdx dgdxd = runDense dgd x             -- Get first-order partial derivative dg/dx
               in   Nagata ((dfdx ⊗ g) ⊕ (f ⊗ dgdx))               -- Compute first-order derivative d(f * g)/dx
                           (Dense $ \y ->
-                              let ddfdxdy = runDense ddfdx y      -- Get second-order partial derivative df/dx/dy
-                                  ddgdxdy = runDense ddgdx y      -- Get second-order partial derivative dg/dx/dy
-                              in (ddfdxdy ⊗ g) ⊕ (f ⊗ ddgdxdy)    -- Compute second-order derivative d(f * g)/dx/dy
+                              let dfdxdy = runDense dfdxd y      -- Get second-order partial derivative df/dx/dy
+                                  dgdxdy = runDense dgdxd y      -- Get second-order partial derivative dg/dx/dy
+                              in (dfdxdy ⊗ g) ⊕ (f ⊗ dgdxdy)    -- Compute second-order derivative d(f * g)/dx/dy
                                  ⊕ (dfdx ⊗ dgdx) ⊕ (dgdx ⊗ dfdx)
                           )
           )
 
-forwardAD_Dense2ndOrd :: Eq v => Semiring d => (v -> d) -> Expr v -> Dense2 v d
-forwardAD_Dense2ndOrd var expr = eval gen expr where
+forwardAD_Dense2 :: forall v d. (Eq v, Semiring d) => (v -> d) -> Expr v -> d ⋉ (Dense v (d ⋉ (Dense v d)))
+forwardAD_Dense2 var = eval gen where
+  -- | The generator instantiates V to second-order Nagata numbers.
+  --   This is passed directly to 'eval :: (v -> d) -> Expr v -> d' rather than 'abstractAD :: (v -> d) -> Expr v -> d ⋉ e'
+  --   to avoid re-lifting into another Nagata number.
+  gen :: v -> (Dense2 v d)
   gen x = Nagata (var x) (delta x)
 
-forwardAD_Dense2ndOrd_example :: (Double, Double, Double)
-forwardAD_Dense2ndOrd_example =
-  let Nagata e    (Dense ded)   = forwardAD_Dense2ndOrd (\X -> 5) example :: Double ⋉ (Dense XY (Double ⋉ Dense XY Double))
-      Nagata dedx (Dense dedxd) = ded X                                   :: Double ⋉ (Dense XY Double)
-      dedxdx                    = dedxd X                                 :: Double
+forwardAD_Dense2_example :: (Double, Double, Double)
+forwardAD_Dense2_example =
+  let Nagata e    (Dense ded)   = forwardAD_Dense2 (\X -> 5) example :: Double ⋉ (Dense XY (Double ⋉ Dense XY Double))
+      Nagata dedx (Dense dedxd) = ded X                              :: Double ⋉ (Dense XY Double)
+      dedxdx                    = dedxd X                            :: Double
   in  (e, dedx, dedxdx)
 
 instance Show d => Show (Dense XY d) where
